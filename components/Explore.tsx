@@ -1,22 +1,26 @@
 
 import React, { useState } from 'react';
-import { MOCK_LISTINGS } from '../constants';
 import { Listing } from '../types';
 import { Search, Filter, MapPin } from 'lucide-react';
 
 interface ExploreProps {
+  listings: Listing[];
   onSelectListing: (listing: Listing) => void;
 }
 
-const Explore: React.FC<ExploreProps> = ({ onSelectListing }) => {
+const Explore: React.FC<ExploreProps> = ({ listings, onSelectListing }) => {
   const [category, setCategory] = useState<string>('All');
   const [search, setSearch] = useState('');
 
-  const categories = ['All', 'Camera', 'Drone', 'Lighting', 'Compute'];
+  const categories = ['All', 'Camera', 'Drone', 'Lighting', 'Compute', 'Audio', 'Event', 'Other'];
 
-  const filteredListings = MOCK_LISTINGS.filter(item => 
+  const filteredListings = listings.filter(item => 
     (category === 'All' || item.category === category) &&
-    (item.title.toLowerCase().includes(search.toLowerCase()) || item.description.toLowerCase().includes(search.toLowerCase()))
+    (
+      item.title.toLowerCase().includes(search.toLowerCase()) ||
+      item.description.toLowerCase().includes(search.toLowerCase()) ||
+      item.productType?.toLowerCase().includes(search.toLowerCase())
+    )
   );
 
   return (
@@ -75,6 +79,9 @@ const Explore: React.FC<ExploreProps> = ({ onSelectListing }) => {
                     <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-gray-900 shadow-sm">
                         ${listing.dailyRateUsdc}/day
                     </div>
+                    <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-semibold text-white shadow-sm">
+                        {listing.productType || listing.category}
+                    </div>
                 </div>
                 
                 <div className="p-4 flex-1 flex flex-col">
@@ -84,6 +91,9 @@ const Explore: React.FC<ExploreProps> = ({ onSelectListing }) => {
                             <div className="flex items-center text-xs text-gray-500 mt-1">
                                 <MapPin className="w-3 h-3 mr-1" />
                                 {listing.location}
+                            </div>
+                            <div className="mt-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                                {listing.category}{listing.productType ? ` • ${listing.productType}` : ''}
                             </div>
                         </div>
                     </div>

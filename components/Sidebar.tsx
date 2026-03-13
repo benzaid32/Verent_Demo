@@ -9,11 +9,12 @@ interface SidebarProps {
   currentMode: ViewMode;
   onSwitchMode: (mode: ViewMode) => void;
   onLogout: () => void;
+  walletBalance?: number;
   isOpen: boolean;
   onClose: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, walletBalance = 0, isOpen, onClose }) => {
   const navItems = [
     { id: 'explore', icon: Compass, label: 'Explore' },
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -100,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, 
                   <span className="w-2 h-2 rounded-full bg-verent-green animate-pulse"></span>
               </div>
               <div className="text-lg font-bold text-gray-900 font-mono tracking-tight">
-                  $1,250.00 <span className="text-xs text-gray-400 font-sans font-normal">USDC</span>
+                  ${walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-gray-400 font-sans font-normal">USDC</span>
               </div>
            </div>
 

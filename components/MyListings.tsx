@@ -1,28 +1,49 @@
 
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Edit3, Eye, Trash2, AlertCircle, BarChart3 } from 'lucide-react';
-import { Listing } from '../types';
-import { MOCK_LISTINGS } from '../constants';
+import { Plus, Search, Filter, Eye, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Listing, Rental } from '../types';
 import AddListingModal from './AddListingModal';
+import type { CreateListingRequest } from '../shared/contracts';
+import { buildSolanaExplorerTxUrl } from '../shared/protocol';
+import { formatOnChainShortId } from './OnChainProofCard';
 
-const MyListings: React.FC = () => {
+interface MyListingsProps {
+  listings: Listing[];
+  rentals: Rental[];
+  onCreateListing: (payload: CreateListingRequest) => Promise<Listing>;
+  onSelectListing: (listing: Listing) => void;
+}
+
+const MyListings: React.FC<MyListingsProps> = ({ listings, rentals, onCreateListing, onSelectListing }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  
-  // Initialize state with mock data filtered for the current user
-  // Using state allows us to visually add new items during the demo
-  const [myListings, setMyListings] = useState<Listing[]>(
-    MOCK_LISTINGS.filter(l => l.ownerId === 'usr_123')
-  );
 
-  const handleAddListing = (newListing: Listing) => {
-    setMyListings(prev => [newListing, ...prev]);
-    setIsAddModalOpen(false);
+  const handleAddListing = async (payload: CreateListingRequest) => {
+    return onCreateListing(payload);
   };
 
-  const filteredListings = myListings.filter(item => 
+  const filteredListings = listings.filter(item => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalAssetValue = listings.reduce((sum, item) => sum + item.collateralValueUsdc, 0);
+  const rentedCount = listings.filter((item) => item.availability === 'rented').length;
+  const utilization = listings.length > 0 ? Math.round((rentedCount / listings.length) * 100) : 0;
+  const monthlyRevenue = rentals
+    .filter((rental) => {
+      const endDate = new Date(rental.endDate);
+      const now = new Date();
+      const monthAgo = new Date();
+      monthAgo.setDate(now.getDate() - 30);
+      return endDate >= monthAgo && (rental.status === 'active' || rental.status === 'completed' || rental.status === 'return_pending');
+    })
+    .reduce((sum, rental) => sum + rental.totalCost, 0);
+  const performanceByListing = rentals.reduce((acc: Record<string, { revenue: number; bookings: number }>, rental) => {
+    acc[rental.itemId] = acc[rental.itemId] || { revenue: 0, bookings: 0 };
+    acc[rental.itemId].revenue += rental.totalCost;
+    acc[rental.itemId].bookings += 1;
+    return acc;
+  }, {});
 
   const StatsCard = ({ label, value, subtext, positive }: { label: string, value: string, subtext: string, positive?: boolean }) => (
     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
@@ -53,9 +74,9 @@ const MyListings: React.FC = () => {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatsCard label="Total Asset Value" value={`$${(42500 + (myListings.length - 3) * 2000).toLocaleString()}`} subtext={`+${myListings.length - 3} new items`} positive />
-        <StatsCard label="Active Utilization" value="68%" subtext="2 items currently rented" positive />
-        <StatsCard label="Est. Monthly Revenue" value="$2,850" subtext="Based on current bookings" positive />
+        <StatsCard label="Total Asset Value" value={`$${totalAssetValue.toLocaleString()}`} subtext={`${listings.length} tracked listings`} positive />
+        <StatsCard label="Active Utilization" value={`${utilization}%`} subtext={`${rentedCount} items currently rented`} positive={utilization > 0} />
+        <StatsCard label="30-Day Revenue" value={`$${monthlyRevenue.toLocaleString()}`} subtext="From active and completed rentals" positive={monthlyRevenue > 0} />
       </div>
 
       {/* Controls */}
@@ -86,7 +107,7 @@ const MyListings: React.FC = () => {
                 <th className="px-6 py-4">Asset Details</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Daily Rate</th>
-                <th className="px-6 py-4 text-right">Performance</th>
+                <th className="px-6 py-4 text-right">Bookings</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -104,8 +125,34 @@ const MyListings: React.FC = () => {
                         <div className="flex items-center space-x-2 mt-1">
                             <span className="text-[10px] font-mono text-gray-400">{item.id.slice(0, 8)}</span>
                             <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                            <span className="text-[10px] text-gray-500">{item.category}</span>
+                            <span className="text-[10px] text-gray-500">{item.productType || item.category}</span>
                         </div>
+                        {(item.confirmedSignature || item.listingPda) && (
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            {item.confirmedSignature && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                <CheckCircle2 className="h-3 w-3" />
+                                <span>Confirmed</span>
+                              </span>
+                            )}
+                            {item.confirmedSignature && (
+                              <a
+                                href={buildSolanaExplorerTxUrl(item.confirmedSignature, item.chainCluster || 'devnet')}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 hover:text-gray-900"
+                              >
+                                <span>Explorer</span>
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                            {item.listingPda && (
+                              <span className="text-[10px] font-mono text-gray-400">
+                                PDA {formatOnChainShortId(item.listingPda)}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -128,24 +175,23 @@ const MyListings: React.FC = () => {
                     <span className="text-xs text-gray-400 ml-1">USDC</span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center justify-end space-x-2">
-                        <div className="flex flex-col items-end">
-                            <span className="text-xs font-bold text-gray-900">$0</span>
-                            <span className="text-[10px] text-gray-400">New Listing</span>
-                        </div>
-                        <BarChart3 className="w-8 h-8 text-gray-200" />
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs font-bold text-gray-900">
+                        {performanceByListing[item.id]?.bookings ?? 0} bookings
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        ${((performanceByListing[item.id]?.revenue ?? 0)).toLocaleString()} earned
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors" title="View Public Listing">
+                        <button
+                            onClick={() => onSelectListing(item)}
+                            className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="View Public Listing"
+                        >
                             <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-verent-green hover:bg-green-50 rounded-lg transition-colors" title="Edit Details">
-                            <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Remove Listing">
-                            <Trash2 className="w-4 h-4" />
                         </button>
                     </div>
                   </td>

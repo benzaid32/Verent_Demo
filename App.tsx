@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Explore from './components/Explore';
 import ListingDetails from './components/ListingDetails';
@@ -13,40 +13,79 @@ import Staking from './components/Staking';
 import AIAssistant from './components/AIAssistant';
 import NotificationsPopover from './components/NotificationsPopover';
 import UserMenu from './components/UserMenu';
-import { INITIAL_WALLET, MOCK_DEVICES } from './constants';
-import { ViewMode, Listing, WalletState, UserRole } from './types';
+import { ViewMode, Listing } from './types';
 import { Bell, Menu } from 'lucide-react';
+import { useAppContext } from './context/AppContext';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const {
+    profile,
+    wallet,
+    listings,
+    myListings,
+    rentingRentals,
+    lendingRentals,
+    conversations,
+    notifications,
+    transactions,
+    devices,
+    loading,
+    error,
+    loginWithPrivy,
+    logout,
+    refresh,
+    markNotificationsRead,
+    createRental: createRentalForListing,
+    acceptRentalById,
+    createListing,
+    updateListing,
+    requestQuote,
+    sendMessage,
+    updateProfileSettings,
+    withdraw,
+    stake,
+    confirmPickupById,
+    completeRentalById,
+    openConversationForListing
+  } = useAppContext();
   const [currentView, setCurrentView] = useState<ViewMode>('explore');
-  const [wallet, setWallet] = useState<WalletState>(INITIAL_WALLET);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-  const [userRole, setUserRole] = useState<UserRole>('renter');
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   
   // Mobile & Menu States
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // Handle Onboarding Complete
-  const handleLogin = (role: UserRole) => {
-    setUserRole(role);
-    setIsAuthenticated(true);
-    
-    // Route based on selected role
-    if (role === 'owner') {
-        setCurrentView('dashboard');
-    } else {
-        setCurrentView('explore');
-    }
-  };
+  const unreadNotifications = useMemo(() => notifications.filter((item) => !item.isRead).length, [notifications]);
+  const isAuthenticated = Boolean(profile);
+  const userRole = profile?.role === 'both' ? 'owner' : profile?.role ?? 'renter';
+  const defaultAuthenticatedView: ViewMode = userRole === 'owner' ? 'dashboard' : 'explore';
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    logout();
     setCurrentView('explore');
     setShowUserMenu(false);
   };
+
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    setCurrentView(defaultAuthenticatedView);
+    setSelectedListing(null);
+  }, [defaultAuthenticatedView, profile?.id]);
+
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    if (currentView === 'details' && !selectedListing) {
+      setCurrentView(defaultAuthenticatedView);
+    }
+  }, [currentView, defaultAuthenticatedView, profile, selectedListing]);
 
   // Handle Navigation
   const handleSwitchMode = (mode: ViewMode) => {
@@ -64,27 +103,50 @@ const App: React.FC = () => {
   };
 
   // Handle Message Owner Action
-  const handleContactOwner = () => {
+  const handleContactOwner = async () => {
+    if (!selectedListing) {
+      return;
+    }
+    const conversation = await openConversationForListing(selectedListing.id);
+    setSelectedConversationId(conversation.id);
     setCurrentView('messages');
   };
 
   // Handle Rental Transaction (Triggered by BookingModal)
-  const handleRent = async (amount: number) => {
-    // In a real app, this would await the blockchain tx confirmation
-    return new Promise<void>((resolve) => {
-        setWallet(prev => ({
-          ...prev,
-          usdcBalance: prev.usdcBalance - amount
-        }));
-        resolve();
-        setTimeout(() => {
-             setCurrentView('dashboard');
-        }, 500);
-    });
+  const handleRent = async (days: number) => {
+    if (!selectedListing) {
+      throw new Error('No listing selected');
+    }
+    return createRentalForListing(selectedListing.id, days);
   };
 
+  const handleBookingFinished = () => {
+    setCurrentView('dashboard');
+  };
+
+  const handleUpdateListing = async (listingId: string, payload: Parameters<typeof updateListing>[1]) => {
+    const updatedListing = await updateListing(listingId, payload);
+    setSelectedListing((current) => (current?.id === updatedListing.id ? updatedListing : current));
+    return updatedListing;
+  };
+
+  if (loading && !profile) {
+    return <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center text-gray-500">Loading Verent...</div>;
+  }
+
   if (!isAuthenticated) {
-    return <Onboarding onComplete={handleLogin} />;
+    return (
+      <Onboarding
+        error={error}
+        onComplete={async (email, role, privyToken, walletAddress) => {
+          await loginWithPrivy(email, role, privyToken, walletAddress);
+        }}
+      />
+    );
+  }
+
+  if (!wallet) {
+    return <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center text-gray-500">Loading wallet...</div>;
   }
 
   return (
@@ -94,6 +156,7 @@ const App: React.FC = () => {
         currentMode={currentView} 
         onSwitchMode={handleSwitchMode} 
         onLogout={handleLogout}
+        walletBalance={wallet?.usdcBalance}
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
       />
@@ -120,14 +183,19 @@ const App: React.FC = () => {
                     onClick={() => {
                         setShowNotifications(!showNotifications);
                         setShowUserMenu(false);
+                        if (showNotifications) {
+                          void markNotificationsRead();
+                        }
                     }}
                     className={`relative p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-50 ${showNotifications ? 'bg-gray-100 text-gray-900' : ''}`}
                 >
                     <Bell className="w-4 h-4" />
-                    <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
+                    {unreadNotifications > 0 && (
+                      <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
+                    )}
                 </button>
                 {showNotifications && (
-                    <NotificationsPopover onClose={() => setShowNotifications(false)} />
+                    <NotificationsPopover notifications={notifications} onMarkAllRead={markNotificationsRead} onClose={() => setShowNotifications(false)} />
                 )}
             </div>
 
@@ -143,12 +211,13 @@ const App: React.FC = () => {
                     className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer shadow-sm"
                 >
                     <div className="w-6 h-6 bg-gradient-to-br from-verent-green to-black rounded-full flex items-center justify-center text-[10px] text-white font-bold">
-                        JD
+                        {profile.username.slice(0, 2).toUpperCase()}
                     </div>
-                    <span className="text-xs font-medium text-gray-700 hidden sm:inline">John Doe</span>
+                    <span className="text-xs font-medium text-gray-700 hidden sm:inline">{profile.username}</span>
                 </div>
                 {showUserMenu && (
                     <UserMenu 
+                        profile={profile}
                         onClose={() => setShowUserMenu(false)} 
                         onLogout={handleLogout}
                         onSettings={() => handleSwitchMode('settings')}
@@ -161,46 +230,58 @@ const App: React.FC = () => {
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto scroll-smooth relative">
             {currentView === 'explore' && (
-                <Explore onSelectListing={handleSelectListing} />
+                <Explore listings={listings} onSelectListing={handleSelectListing} />
             )}
             
             {currentView === 'details' && selectedListing && (
                 <ListingDetails 
                     listing={selectedListing} 
+                    profile={profile}
                     wallet={wallet}
                     onBack={() => handleSwitchMode('explore')}
                     onRent={handleRent}
+                    onBookingFinished={handleBookingFinished}
                     onContactOwner={handleContactOwner}
+                    onUpdateListing={handleUpdateListing}
+                    requestQuote={requestQuote}
                 />
             )}
 
             {currentView === 'wallet' && (
-                <WalletView wallet={wallet} />
+                <WalletView wallet={wallet} transactions={transactions} onWithdraw={withdraw} onRefresh={refresh} />
             )}
 
             {currentView === 'staking' && (
-                <Staking />
+                <Staking wallet={wallet} profile={profile} onStake={stake} />
             )}
 
             {currentView === 'messages' && (
-                <Messages />
+                <Messages currentUserId={profile.id} conversations={conversations} activeConversationId={selectedConversationId} onSendMessage={sendMessage} />
             )}
 
             {currentView === 'dashboard' && (
-                <UnifiedDashboard initialTab={userRole === 'owner' ? 'lending' : 'renting'} />
+                <UnifiedDashboard
+                  initialTab={userRole === 'owner' ? 'lending' : 'renting'}
+                  rentingRentals={rentingRentals}
+                  lendingRentals={lendingRentals}
+                  onAcceptRental={acceptRentalById}
+                  onConfirmPickup={confirmPickupById}
+                  onCompleteRental={completeRentalById}
+                  onCreateListing={createListing}
+                />
             )}
 
             {currentView === 'listings' && (
-                <MyListings />
+                <MyListings listings={myListings} rentals={lendingRentals} onCreateListing={createListing} onSelectListing={handleSelectListing} />
             )}
 
             {currentView === 'settings' && (
-                <Settings />
+                <Settings profile={profile} notifications={notifications} onSave={updateProfileSettings} />
             )}
         </div>
 
         {/* Global AI Assistant - Always Available */}
-        <AIAssistant devices={MOCK_DEVICES} />
+        <AIAssistant devices={devices} />
       </main>
     </div>
   );

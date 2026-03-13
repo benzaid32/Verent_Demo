@@ -14,7 +14,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ devices }) => {
 
   const handleAnalyze = async () => {
     setIsLoading(true);
-    const result = await analyzeFleetStatus(devices);
+    const result = await analyzeFleetStatus();
     setAnalysis(result);
     setIsLoading(false);
   };

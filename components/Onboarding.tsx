@@ -1,21 +1,30 @@
 
 import React, { useState, useEffect } from 'react';
+import { useLoginWithEmail, usePrivy } from '@privy-io/react-auth';
+import { useCreateWallet, useWallets } from '@privy-io/react-auth/solana';
 import { ArrowRight, Server, Search, Mail, CheckCircle2, Loader2, ChevronLeft, ShieldCheck } from 'lucide-react';
 import { UserRole } from '../types';
 
 const logo = new URL('../assets/favicon-32x32.png', import.meta.url).href;
 
 interface OnboardingProps {
-  onComplete: (role: UserRole) => void;
+  onComplete: (email: string, role: UserRole, privyToken: string, walletAddress?: string) => Promise<void>;
+  error?: string | null;
 }
 
 type Step = 'role' | 'email' | 'verify';
 
-const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
+  const { ready, getAccessToken, user } = usePrivy();
+  const { sendCode, loginWithCode } = useLoginWithEmail();
+  const { createWallet } = useCreateWallet();
+  const { wallets } = useWallets();
   const [step, setStep] = useState<Step>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [email, setEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   
   // Network animation nodes
   const nodes = Array.from({ length: 12 }).map((_, i) => ({
@@ -28,27 +37,78 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
+    setLocalError(null);
     setStep('email');
   };
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setLocalError(null);
+    try {
+      await sendCode({ email: email.trim().toLowerCase() });
+      setVerificationCode('');
       setStep('verify');
-    }, 1500);
+    } catch (caughtError) {
+      setLocalError(caughtError instanceof Error ? caughtError.message : 'Failed to send verification code.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleVerifySubmit = (e: React.FormEvent) => {
+  const handleVerifySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
+    setLocalError(null);
+    if (!selectedRole) {
       setIsLoading(false);
-      if (selectedRole) {
-        onComplete(selectedRole);
+      return;
+    }
+
+    try {
+      const loginResult = await loginWithCode({ code: verificationCode.trim() });
+      const privyToken = await getAccessToken();
+      if (!privyToken) {
+        throw new Error('Privy did not return an access token.');
       }
-    }, 1500);
+      const resultUser = getUserFromLoginResult(loginResult);
+      let resolvedWalletAddress =
+        getWalletAddressFromPrivyUser(resultUser) ??
+        getWalletAddressFromPrivyUser(user) ??
+        getWalletAddressFromWallets(wallets);
+
+      if (!resolvedWalletAddress) {
+        const createdWallet = await createWallet();
+        resolvedWalletAddress =
+          getWalletAddressFromCreateWalletResult(createdWallet) ??
+          getWalletAddressFromWallets(wallets);
+      }
+
+      await onComplete(email, selectedRole, privyToken, resolvedWalletAddress);
+    } catch (caughtError) {
+      setLocalError(caughtError instanceof Error ? caughtError.message : 'Failed to verify your email.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!email) {
+      setStep('email');
+      return;
+    }
+
+    setIsLoading(true);
+    setLocalError(null);
+    try {
+      await sendCode({ email: email.trim().toLowerCase() });
+      setVerificationCode('');
+      setStep('verify');
+    } catch (caughtError) {
+      setLocalError(caughtError instanceof Error ? caughtError.message : 'Failed to send a new verification code.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -207,7 +267,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                             </div>
                             <button 
                                 type="submit" 
-                                disabled={isLoading || !email}
+                                disabled={isLoading || !email || !ready}
                                 className="w-full bg-[#111] text-white font-bold py-4 rounded-xl hover:bg-black transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-xl shadow-gray-200 hover:shadow-gray-300 hover:-translate-y-0.5"
                             >
                                 {isLoading ? (
@@ -220,6 +280,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                 )}
                             </button>
                         </form>
+                        {localError && (
+                            <p className="text-sm text-red-500">{localError}</p>
+                        )}
                          <div className="mt-6 flex items-center justify-center space-x-2 text-xs text-gray-400">
                             <ShieldCheck className="w-3 h-3" />
                             <span>Secured by Privy</span>
@@ -243,13 +306,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                                     required
                                     maxLength={6}
                                     autoFocus
+                                    value={verificationCode}
+                                    onChange={(e) => setVerificationCode(e.target.value)}
                                     className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-verent-green/20 focus:border-verent-green outline-none transition-all text-center text-3xl tracking-[0.5em] font-mono text-gray-900 placeholder-gray-300"
                                     placeholder="000000"
                                 />
                             </div>
+                            {(localError || error) && (
+                                <p className="text-sm text-red-500">{localError || error}</p>
+                            )}
                             <button 
                                 type="submit" 
-                                disabled={isLoading}
+                                disabled={isLoading || !ready}
                                 className="w-full bg-verent-green text-white font-bold py-4 rounded-xl hover:bg-emerald-600 transition-all disabled:opacity-70 flex items-center justify-center space-x-2 shadow-xl shadow-verent-green/20 hover:shadow-verent-green/30 hover:-translate-y-0.5"
                             >
                                 {isLoading ? (
@@ -264,10 +332,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                         </form>
                          <div className="mt-8 text-center">
                             <button 
-                                onClick={() => setStep('email')}
+                                onClick={() => void handleResendCode()}
                                 className="text-sm text-gray-500 hover:text-gray-900 font-medium underline decoration-gray-300 underline-offset-4"
                             >
-                                Send code again
+                                Send a new code
                             </button>
                         </div>
                     </div>
@@ -278,5 +346,104 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     </div>
   );
 };
+
+function getWalletAddressFromPrivyUser(user: unknown): string | undefined {
+  if (!user || typeof user !== 'object') {
+    return undefined;
+  }
+  const candidate = user as Record<string, unknown>;
+  const directWallet =
+    typeof candidate.walletAddress === 'string'
+      ? candidate.walletAddress
+      : typeof candidate.wallet_address === 'string'
+        ? candidate.wallet_address
+        : undefined;
+  if (directWallet) {
+    return directWallet;
+  }
+
+  const linkedAccountsRaw =
+    Array.isArray(candidate.linkedAccounts)
+      ? candidate.linkedAccounts
+      : Array.isArray(candidate.linked_accounts)
+        ? candidate.linked_accounts
+        : [];
+
+  for (const account of linkedAccountsRaw) {
+    if (!account || typeof account !== 'object') {
+      continue;
+    }
+    const linked = account as Record<string, unknown>;
+    const address =
+      typeof linked.address === 'string'
+        ? linked.address
+        : typeof linked.walletAddress === 'string'
+          ? linked.walletAddress
+          : typeof linked.wallet_address === 'string'
+            ? linked.wallet_address
+            : undefined;
+    if (!address) {
+      continue;
+    }
+    const chainType = typeof linked.chainType === 'string' ? linked.chainType.toLowerCase() : typeof linked.chain_type === 'string' ? linked.chain_type.toLowerCase() : '';
+    const accountType = typeof linked.type === 'string' ? linked.type.toLowerCase() : '';
+    if (chainType === 'solana' || accountType === 'wallet') {
+      return address;
+    }
+  }
+
+  return undefined;
+}
+
+function getUserFromLoginResult(loginResult: unknown): unknown {
+  if (!loginResult || typeof loginResult !== 'object') {
+    return undefined;
+  }
+  const result = loginResult as Record<string, unknown>;
+  if (result.user) {
+    return result.user;
+  }
+  const loginField = result.login;
+  if (loginField && typeof loginField === 'object' && (loginField as Record<string, unknown>).user) {
+    return (loginField as Record<string, unknown>).user;
+  }
+  return undefined;
+}
+
+function getWalletAddressFromWallets(wallets: unknown): string | undefined {
+  if (!Array.isArray(wallets)) {
+    return undefined;
+  }
+  for (const wallet of wallets) {
+    const address = getWalletAddressFromCreateWalletResult(wallet);
+    if (address) {
+      return address;
+    }
+  }
+  return undefined;
+}
+
+function getWalletAddressFromCreateWalletResult(result: unknown): string | undefined {
+  if (!result || typeof result !== 'object') {
+    return undefined;
+  }
+  const candidate = result as Record<string, unknown>;
+  if (typeof candidate.address === 'string') {
+    return candidate.address;
+  }
+  if (candidate.wallet && typeof candidate.wallet === 'object') {
+    const nestedWallet = candidate.wallet as Record<string, unknown>;
+    if (typeof nestedWallet.address === 'string') {
+      return nestedWallet.address;
+    }
+    if (typeof nestedWallet.walletAddress === 'string') {
+      return nestedWallet.walletAddress;
+    }
+  }
+  if (typeof candidate.walletAddress === 'string') {
+    return candidate.walletAddress;
+  }
+  return undefined;
+}
 
 export default Onboarding;

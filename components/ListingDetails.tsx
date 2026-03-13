@@ -1,48 +1,64 @@
 
-import React, { useState } from 'react';
-import { Listing, WalletState } from '../types';
-import { MOCK_USER } from '../constants';
-import { ArrowLeft, ShieldCheck, Info, MapPin, Star, Box, Check, Award, Clock, Zap, Lock, Edit3, Power, BarChart3, AlertTriangle, Wallet, ArrowUpRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Listing, QuoteResponse, Rental, User, WalletState } from '../types';
+import { ArrowLeft, ShieldCheck, MapPin, CheckCircle2, Clock, Zap, Lock, Edit3, Wallet } from 'lucide-react';
 import BookingModal from './BookingModal';
+import OnChainProofCard from './OnChainProofCard';
+import EditListingModal from './EditListingModal';
+import type { UpdateListingRequest } from '../shared/contracts';
 
 interface ListingDetailsProps {
   listing: Listing;
+  profile: User;
   wallet: WalletState;
   onBack: () => void;
-  onRent: (amount: number) => Promise<void>;
-  onContactOwner: () => void;
+  onRent: (days: number) => Promise<Rental>;
+  onBookingFinished: () => void;
+  onContactOwner: () => Promise<void> | void;
+  onUpdateListing: (listingId: string, payload: UpdateListingRequest) => Promise<Listing>;
+  requestQuote: (listingId: string, days: number) => Promise<QuoteResponse>;
 }
 
-const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack, onRent, onContactOwner }) => {
+const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, wallet, onBack, onRent, onBookingFinished, onContactOwner, onUpdateListing, requestQuote }) => {
   const [days, setDays] = useState(3);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [quote, setQuote] = useState<QuoteResponse | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(true);
   
   // Check if the current user is the owner of this listing
-  const isOwner = listing.ownerId === MOCK_USER.id;
+  const isOwner = listing.ownerId === profile.id;
   
-  const serviceFee = 0.05; // 5%
-  const rentalSubtotal = listing.dailyRateUsdc * days;
-  const feeAmount = rentalSubtotal * serviceFee;
-  const rentalTotal = rentalSubtotal + feeAmount;
+  useEffect(() => {
+    let active = true;
+    setQuoteLoading(true);
+    void requestQuote(listing.id, days).then((nextQuote) => {
+      if (active) {
+        setQuote(nextQuote);
+      }
+    }).finally(() => {
+      if (active) {
+        setQuoteLoading(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [days, listing.id, requestQuote]);
 
-  // "Stake-to-Rent" Logic: Calculate Collateral based on User Tier
-  const getCollateralRequirement = (tier: number) => {
-    switch(tier) {
-      case 3: return 0.10; // Pro: 10%
-      case 2: return 0.50; // Verified: 50%
-      default: return 1.0; // New: 100%
-    }
-  };
-
-  const collateralPercent = getCollateralRequirement(MOCK_USER.tier);
-  const requiredCollateral = listing.collateralValueUsdc * collateralPercent;
-  const totalUpfrontCost = rentalTotal + requiredCollateral;
+  const rentalSubtotal = quote?.rentalSubtotal ?? listing.dailyRateUsdc * days;
+  const feeAmount = quote?.feeAmount ?? 0;
+  const rentalTotal = quote?.rentalTotal ?? rentalSubtotal;
+  const requiredCollateral = quote?.requiredCollateral ?? 0;
+  const totalUpfrontCost = quote?.totalUpfrontCost ?? rentalTotal + requiredCollateral;
   
   const canAfford = wallet.usdcBalance >= totalUpfrontCost;
+  const ownerWalletLabel = listing.ownerWalletAddress
+    ? `${listing.ownerWalletAddress.slice(0, 6)}...${listing.ownerWalletAddress.slice(-6)}`
+    : null;
 
   const handleBookingComplete = async () => {
-    await onRent(totalUpfrontCost);
-    setShowBookingModal(false);
+    return onRent(days);
   };
 
   return (
@@ -61,9 +77,6 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
              {isOwner && (
                  <span className="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded border border-gray-200 mr-2">Owner View</span>
              )}
-             <button className="p-2 text-gray-400 hover:text-gray-900 transition-colors">
-                <Box className="w-4 h-4" />
-             </button>
         </div>
       </div>
 
@@ -77,9 +90,14 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                     <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs uppercase font-bold tracking-wider rounded-full">
                         {listing.category}
                     </span>
+                    {listing.productType && (
+                      <span className="px-3 py-1 bg-black/30 backdrop-blur-md border border-white/10 text-white text-xs uppercase font-bold tracking-wider rounded-full">
+                        {listing.productType}
+                      </span>
+                    )}
                     <span className="flex items-center space-x-1 text-verent-green text-xs font-bold bg-black/40 px-3 py-1 rounded-full backdrop-blur-md border border-verent-green/30">
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>Verified Asset</span>
+                        <span>On-Chain Listed</span>
                     </span>
                 </div>
                 <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-2">{listing.title}</h1>
@@ -88,10 +106,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                         <MapPin className="w-4 h-4 mr-1" />
                         {listing.location}
                     </span>
-                    <span className="flex items-center">
-                        <Star className="w-4 h-4 mr-1 text-orange-400 fill-orange-400" />
-                        4.9 (24 Reviews)
-                    </span>
+                    <span className="flex items-center">{listing.availability.replace('_', ' ')}</span>
                 </div>
             </div>
         </div>
@@ -114,10 +129,6 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                                 <p className="text-sm font-medium text-gray-900 font-mono border-l-2 border-gray-200 pl-3">{spec}</p>
                             </div>
                         ))}
-                         <div className="space-y-1">
-                                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Condition</p>
-                                <p className="text-sm font-medium text-gray-900 font-mono border-l-2 border-green-500 pl-3">Excellent</p>
-                        </div>
                     </div>
                 </div>
 
@@ -125,7 +136,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                  <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-4">About this asset</h3>
                     <p className="text-gray-600 leading-relaxed text-lg">
-                        {listing.description} This unit is maintained by professional technicians and includes a Pelican hard case for transport. Firmware is up to date as of October 2023. Ideal for high-end commercial production or research applications requiring maximum reliability.
+                        {listing.description}
                     </p>
                 </div>
 
@@ -134,18 +145,20 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                     <div className="flex items-center space-x-4">
                         <div className="relative">
                             <img src={listing.ownerAvatar} alt={listing.ownerName} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" />
-                            <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white p-1 rounded-full border-2 border-white">
-                                <Check className="w-3 h-3" />
+                            <div className="absolute -bottom-1 -right-1 bg-green-500 text-white p-1 rounded-full border-2 border-white">
+                                <CheckCircle2 className="w-3 h-3" />
                             </div>
                         </div>
                         <div>
                             <h3 className="font-bold text-gray-900 text-lg">{isOwner ? 'You (Owner)' : listing.ownerName}</h3>
-                            <p className="text-sm text-gray-500">Joined Sep 2023 • <span className="text-gray-900 font-medium">98% Response Rate</span></p>
+                            <p className="text-sm text-gray-500">
+                              {ownerWalletLabel ? `Wallet ${ownerWalletLabel}` : 'Embedded wallet connected'}
+                            </p>
                         </div>
                     </div>
                     {!isOwner && (
                         <button 
-                          onClick={onContactOwner}
+                          onClick={() => { void onContactOwner(); }}
                           className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
                         >
                             Contact Owner
@@ -153,26 +166,24 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                     )}
                 </div>
 
-                {/* Trust & Safety Banner */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="p-6 rounded-2xl bg-blue-50/50 border border-blue-100 flex items-start space-x-4">
-                        <Award className="w-6 h-6 text-blue-600 flex-shrink-0" />
-                        <div>
-                            <h4 className="font-bold text-blue-900 text-sm">Insurance Included</h4>
-                            <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-                                Every rental on Verent is covered up to $50,000 against accidental damage and theft.
-                            </p>
-                        </div>
-                     </div>
-                     <div className="p-6 rounded-2xl bg-verent-green/5 border border-verent-green/20 flex items-start space-x-4">
-                        <Lock className="w-6 h-6 text-verent-green flex-shrink-0" />
-                        <div>
-                            <h4 className="font-bold text-gray-900 text-sm">Escrow Protected</h4>
-                            <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                                Funds are held in a smart contract and only released when you confirm pickup via QR code.
-                            </p>
-                        </div>
-                     </div>
+                <OnChainProofCard
+                  signature={listing.confirmedSignature}
+                  programId={listing.programId}
+                  accountLabel="Listing PDA"
+                  accountValue={listing.listingPda}
+                  confirmedSlot={listing.confirmedSlot}
+                  cluster={listing.chainCluster}
+                  protocolVersion={listing.protocolVersion}
+                />
+
+                <div className="p-6 rounded-2xl bg-verent-green/5 border border-verent-green/20 flex items-start space-x-4">
+                    <Lock className="w-6 h-6 text-verent-green flex-shrink-0" />
+                    <div>
+                        <h4 className="font-bold text-gray-900 text-sm">Escrow Protected</h4>
+                        <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                            Booking funds and collateral are locked through the Verent rental program and every successful state change surfaces fresh chain proof.
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -193,43 +204,17 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                                 </div>
                                 <div className="flex items-center space-x-1 text-green-600 bg-green-50 px-2 py-1 rounded text-xs font-bold">
                                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                    <span>Active</span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 mb-6">
-                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Earnings</p>
-                                    <p className="text-lg font-bold text-gray-900 font-mono mt-1">$1,450</p>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Views</p>
-                                    <p className="text-lg font-bold text-gray-900 font-mono mt-1">342</p>
+                                    <span>{listing.availability}</span>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
-                                <button className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group">
+                                <button onClick={() => setShowEditModal(true)} className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group">
                                     <div className="flex items-center space-x-3">
                                         <Edit3 className="w-4 h-4 text-gray-400 group-hover:text-gray-900" />
                                         <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Edit Details & Price</span>
                                     </div>
                                     <ArrowLeft className="w-4 h-4 text-gray-300 rotate-180 group-hover:text-gray-900" />
-                                </button>
-
-                                <button className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group">
-                                    <div className="flex items-center space-x-3">
-                                        <BarChart3 className="w-4 h-4 text-gray-400 group-hover:text-gray-900" />
-                                        <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">View Analytics</span>
-                                    </div>
-                                    <ArrowLeft className="w-4 h-4 text-gray-300 rotate-180 group-hover:text-gray-900" />
-                                </button>
-
-                                <button className="w-full flex items-center justify-between p-4 bg-white border border-red-100 rounded-xl hover:bg-red-50 transition-colors group">
-                                    <div className="flex items-center space-x-3">
-                                        <Power className="w-4 h-4 text-red-400 group-hover:text-red-600" />
-                                        <span className="text-sm font-medium text-red-600">Pause Listing</span>
-                                    </div>
                                 </button>
                             </div>
                         </div>
@@ -242,7 +227,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                                     <span className="text-sm text-gray-400 font-medium">per day</span>
                                 </div>
                                 <div className="flex flex-col items-end">
-                                    <span className="text-xs font-bold text-verent-green bg-green-50 px-2 py-1 rounded-md">Available Today</span>
+                                    <span className="text-xs font-bold text-verent-green bg-green-50 px-2 py-1 rounded-md uppercase">{listing.availability}</span>
                                 </div>
                             </div>
 
@@ -282,13 +267,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                                       <div className="text-[10px] text-blue-600 leading-snug">
                                         Fully refundable upon return. 
                                         <br />
-                                        <span className="font-semibold">You save ${(listing.collateralValueUsdc - requiredCollateral).toLocaleString()}</span> thanks to your Tier {MOCK_USER.tier} status.
-                                        {MOCK_USER.tier < 3 && (
-                                            <button className="flex items-center space-x-1 mt-1 text-blue-800 font-bold hover:underline">
-                                                <span>Upgrade Tier</span>
-                                                <ArrowUpRight className="w-2.5 h-2.5" />
-                                            </button>
-                                        )}
+                                        <span className="font-semibold">You save ${Math.max(0, listing.collateralValueUsdc - requiredCollateral).toLocaleString()}</span> thanks to your Tier {profile.tier} status.
                                       </div>
                                     </div>
 
@@ -299,7 +278,11 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                                 </div>
                             </div>
 
-                            {canAfford ? (
+                            {quoteLoading ? (
+                                <button disabled className="w-full bg-gray-100 text-gray-400 font-bold py-4 rounded-xl cursor-wait">
+                                    Calculating Escrow Quote...
+                                </button>
+                            ) : canAfford ? (
                                 <button 
                                     onClick={() => setShowBookingModal(true)}
                                     className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-300 hover:shadow-gray-400 hover:-translate-y-0.5 flex items-center justify-center space-x-2"
@@ -322,21 +305,9 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
                                 <Clock className="w-3 h-3" />
                                 <span>Avg. confirmation time: ~2 mins</span>
                             </div>
-                            
-                            <button className="w-full mt-2 flex items-center justify-center space-x-1 text-xs text-gray-400 hover:text-gray-600">
-                                <AlertTriangle className="w-3 h-3" />
-                                <span>Report this listing</span>
-                            </button>
                         </div>
                     )}
                     
-                    {/* Help Box */}
-                     <div className="bg-white p-4 rounded-xl border border-gray-200 flex items-start space-x-3">
-                        <Info className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-gray-500 leading-relaxed">
-                            <strong>Pro Tip:</strong> Renting for 7+ days automatically applies a 10% volume discount on the daily rate.
-                        </p>
-                     </div>
                 </div>
             </div>
         </div>
@@ -350,7 +321,18 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, wallet, onBack
             collateralAmount={requiredCollateral}
             onClose={() => setShowBookingModal(false)} 
             onConfirm={handleBookingComplete}
+            onDone={() => {
+              setShowBookingModal(false);
+              onBookingFinished();
+            }}
           />
+      )}
+      {showEditModal && (
+        <EditListingModal
+          listing={listing}
+          onClose={() => setShowEditModal(false)}
+          onSave={(payload) => onUpdateListing(listing.id, payload)}
+        />
       )}
     </div>
   );

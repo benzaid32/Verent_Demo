@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: verent-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /ready
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: APP_ORIGIN
+        value: https://verent-frontend.onrender.com
+      - key: BACKEND_JWT_SECRET
+        sync: false
+      - key: DATA_PROVIDER
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SOLANA_CLUSTER
+        value: devnet
+      - key: SOLANA_RPC_URL
+        value: https://api.devnet.solana.com
+      - key: TREASURY_SECRET_KEY
+        sync: false
+      - key: TREASURY_PUBLIC_KEY
+        sync: false
+      - key: PRIVY_APP_ID
+        sync: false
+      - key: PRIVY_VERIFICATION_KEY
+        sync: false
+      - key: VERENT_RENTALS_PROGRAM_ID
+        sync: false
+      - key: VERENT_USDC_MINT
+        sync: false
+
+  - type: static
+    name: verent-frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://verent-backend.onrender.com
+      - key: VITE_PRIVY_APP_ID
+        sync: false
+      - key: VITE_PRIVY_CLIENT_ID
+        sync: false
+      - key: VITE_VERENT_RENTALS_PROGRAM_ID
+        sync: false

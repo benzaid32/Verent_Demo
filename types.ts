@@ -1,66 +1,43 @@
+import type {
+  ConversationRecord,
+  DeviceRecord,
+  FleetAnalysisResponse,
+  ListingRecord,
+  NotificationRecord,
+  Profile,
+  QuoteResponse,
+  RentalRecord,
+  TransactionRecord,
+  UserRole,
+  VerificationTier,
+  WalletSnapshot
+} from './shared/contracts';
 
-export type UserRole = 'renter' | 'owner' | 'both';
+export type { UserRole, VerificationTier };
 
-export type VerificationTier = 1 | 2 | 3;
-
-export interface User {
-  id: string;
-  email: string;
-  walletAddress: string;
-  role: UserRole;
-  tier: VerificationTier;
-  reputationScore: number;
+export interface User extends Omit<Profile, 'username' | 'avatarUrl' | 'createdAt'> {
+  username?: string;
+  avatarUrl?: string;
+  createdAt?: string;
 }
 
-export interface WalletState {
-  solBalance: number;
-  usdcBalance: number;
-  vrntBalance: number; // Liquid Governance Token
-  stakedVrntBalance: number; // Staked in Safety Module
-  pendingYieldUsdc: number; // Unclaimed Real Yield
-  address: string;
+export interface WalletState extends Omit<WalletSnapshot, 'updatedAt'> {
+  updatedAt?: string;
 }
 
-export interface Transaction {
-  id: string;
-  type: 'deposit' | 'withdraw' | 'rental_payment' | 'payout' | 'stake' | 'unstake' | 'claim_yield';
-  amount: number;
-  currency: 'USDC' | 'SOL' | 'VRNT';
-  date: string;
-  status: 'completed' | 'confirmed' | 'pending' | 'failed';
-  hash: string;
+export interface Transaction extends Omit<TransactionRecord, 'profileId'> {
+  profileId?: string;
 }
 
-export type RentalStatus = 'pending_pickup' | 'active' | 'return_pending' | 'completed' | 'cancelled';
+export type RentalStatus = RentalRecord['status'];
 
-export interface Rental {
-  id: string;
+export interface Rental extends Omit<RentalRecord, 'listingId' | 'createdAt'> {
   itemId: string;
-  itemTitle: string; // Denormalized for UI
-  renterId: string;
-  ownerId: string;
-  startDate: string;
-  endDate: string;
-  totalCost: number;
-  collateralLocked: number;
-  status: RentalStatus;
-  thumbnail: string;
+  createdAt?: string;
 }
 
-export interface Listing {
-  id: string;
-  title: string;
-  category: 'Camera' | 'Drone' | 'Lighting' | 'Compute';
-  description: string;
-  specs: string[];
-  dailyRateUsdc: number;
-  collateralValueUsdc: number; // The full replacement value of the asset
-  location: string;
-  ownerId: string;
-  ownerName: string;
-  ownerAvatar: string; // URL
-  imageUrl: string; // URL
-  availability: 'active' | 'rented' | 'maintenance';
+export interface Listing extends Omit<ListingRecord, 'createdAt'> {
+  createdAt?: string;
 }
 
 export type ViewMode = 'explore' | 'dashboard' | 'listings' | 'wallet' | 'messages' | 'settings' | 'details' | 'staking';
@@ -79,56 +56,22 @@ export enum DeviceStatus {
   MAINTENANCE = 'maintenance'
 }
 
-export interface Device {
-  id: string;
-  name: string;
+export interface Device extends Omit<DeviceRecord, 'type' | 'status'> {
   type: DeviceType;
   status: DeviceStatus;
-  dailyRate: number;
-  totalEarnings: number;
-  uptime: number;
 }
 
-export interface AIAnalysisResponse {
-  summary: string;
-  optimizationTips: string[];
-  projectedEarnings: string;
-}
+export type AIAnalysisResponse = FleetAnalysisResponse;
+export type { QuoteResponse };
 
 export type OnboardingStep = 'role' | 'email' | 'verify';
 
 export type BookingStep = 'summary' | 'contract_check' | 'signature' | 'processing' | 'confirmed';
 
-export interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  timestamp: string; // ISO string
-  isRead: boolean;
-}
+export type Message = ConversationRecord['messages'][number];
 
-export interface Conversation {
-  id: string;
-  participantId: string;
-  participantName: string;
-  participantAvatar: string;
-  participantRole: 'Owner' | 'Renter';
-  relatedItemId?: string;
-  relatedItemTitle?: string;
-  lastMessage: string;
-  lastMessageDate: string;
-  unreadCount: number;
-  messages: Message[];
-}
+export type Conversation = ConversationRecord;
 
 export type NotificationType = 'rental' | 'security' | 'system' | 'wallet';
 
-export interface Notification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  timestamp: string;
-  isRead: boolean;
-  link?: string;
-}
+export type Notification = NotificationRecord;

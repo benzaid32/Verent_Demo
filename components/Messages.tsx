@@ -1,40 +1,35 @@
-import React, { useState } from 'react';
-import { MOCK_CONVERSATIONS, MOCK_USER } from '../constants';
-import { Conversation, Message } from '../types';
-import { Search, Send, MoreHorizontal, Paperclip, Smile, Check, CheckCheck, Phone, Video } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Conversation } from '../types';
+import { Send, Check, CheckCheck } from 'lucide-react';
 
-const Messages: React.FC = () => {
-  const [activeConvId, setActiveConvId] = useState<string>(MOCK_CONVERSATIONS[0].id);
-  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
+interface MessagesProps {
+  currentUserId: string;
+  conversations: Conversation[];
+  activeConversationId?: string | null;
+  onSendMessage: (conversationId: string, text: string) => Promise<void>;
+}
+
+const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activeConversationId, onSendMessage }) => {
+  const [activeConvId, setActiveConvId] = useState<string>(activeConversationId ?? conversations[0]?.id ?? '');
   const [inputText, setInputText] = useState('');
+  const activeConversation = conversations.find(c => c.id === activeConvId) ?? conversations[0];
 
-  const activeConversation = conversations.find(c => c.id === activeConvId);
+  useEffect(() => {
+    if (!activeConvId && conversations[0]?.id) {
+      setActiveConvId(conversations[0].id);
+    }
+  }, [activeConvId, conversations]);
+
+  useEffect(() => {
+    if (activeConversationId) {
+      setActiveConvId(activeConversationId);
+    }
+  }, [activeConversationId]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !activeConversation) return;
-
-    const newMessage: Message = {
-      id: `new_${Date.now()}`,
-      senderId: MOCK_USER.id,
-      text: inputText,
-      timestamp: new Date().toISOString(),
-      isRead: false
-    };
-
-    // Update conversation with new message
-    setConversations(prev => prev.map(c => {
-      if (c.id === activeConvId) {
-        return {
-          ...c,
-          messages: [...c.messages, newMessage],
-          lastMessage: inputText,
-          lastMessageDate: 'Just now'
-        };
-      }
-      return c;
-    }));
-
+    void onSendMessage(activeConversation.id, inputText);
     setInputText('');
   };
 
@@ -45,14 +40,7 @@ const Messages: React.FC = () => {
       <div className="w-full md:w-80 border-r border-gray-200 flex flex-col h-full">
         <div className="p-4 border-b border-gray-100">
           <h1 className="text-xl font-bold text-gray-900 mb-4">Inbox</h1>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search messages..." 
-              className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-verent-green/20 focus:border-verent-green outline-none"
-            />
-          </div>
+          <p className="text-sm text-gray-500">Conversations are scoped to your account and listing context.</p>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -76,7 +64,7 @@ const Messages: React.FC = () => {
                   <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">{conv.lastMessageDate}</span>
                 </div>
                 <p className={`text-xs truncate ${conv.unreadCount > 0 ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>
-                   {conv.messages[conv.messages.length - 1]?.senderId === MOCK_USER.id && 'You: '}{conv.lastMessage}
+                   {conv.messages[conv.messages.length - 1]?.senderId === currentUserId && 'You: '}{conv.lastMessage}
                 </p>
                 {conv.relatedItemTitle && (
                    <span className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-500 font-medium">
@@ -105,17 +93,12 @@ const Messages: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3 text-gray-400">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><Phone className="w-4 h-4" /></button>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><Video className="w-4 h-4" /></button>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><MoreHorizontal className="w-4 h-4" /></button>
-            </div>
           </div>
 
           {/* Messages List */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
              {activeConversation.messages.map((msg) => {
-               const isMe = msg.senderId === MOCK_USER.id;
+               const isMe = msg.senderId === currentUserId;
                return (
                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[70%] ${isMe ? 'order-1' : 'order-2'}`}>
@@ -139,9 +122,6 @@ const Messages: React.FC = () => {
           {/* Input Area */}
           <div className="p-4 bg-white border-t border-gray-200">
             <form onSubmit={handleSend} className="flex items-center space-x-3 bg-gray-50 rounded-xl p-2 border border-gray-200 focus-within:ring-2 focus-within:ring-verent-green/20 focus-within:border-verent-green transition-all">
-               <button type="button" className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <Paperclip className="w-5 h-5" />
-               </button>
                <input 
                   type="text" 
                   value={inputText}
@@ -149,9 +129,6 @@ const Messages: React.FC = () => {
                   placeholder="Type a message..." 
                   className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
                />
-               <button type="button" className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <Smile className="w-5 h-5" />
-               </button>
                <button 
                   type="submit" 
                   disabled={!inputText.trim()}
@@ -166,7 +143,7 @@ const Messages: React.FC = () => {
         <div className="flex-1 flex items-center justify-center bg-gray-50">
            <div className="text-center">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                 <MoreHorizontal className="w-8 h-8 text-gray-300" />
+                 <Send className="w-8 h-8 text-gray-300" />
               </div>
               <h3 className="text-gray-900 font-medium">Select a conversation</h3>
               <p className="text-gray-500 text-sm mt-1">Choose a chat from the list to start messaging.</p>

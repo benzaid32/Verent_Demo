@@ -1,12 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, Upload, Camera, Cpu, Plane, Zap, Loader2, CheckCircle2, DollarSign, MapPin, Plus } from 'lucide-react';
-import { Listing, DeviceType } from '../types';
-import { MOCK_USER } from '../constants';
+import { Listing } from '../types';
+import type { CreateListingRequest } from '../shared/contracts';
+import OnChainProofCard from './OnChainProofCard';
 
 interface AddListingModalProps {
   onClose: () => void;
-  onAdd: (listing: Listing) => void;
+  onAdd: (payload: CreateListingRequest) => Promise<Listing>;
 }
 
 const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => {
@@ -14,40 +15,77 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
   const [formData, setFormData] = useState({
     title: '',
     category: 'Camera',
+    productType: '',
     description: '',
     location: '',
     price: '',
     specs: ''
   });
+  const [imageDataUrl, setImageDataUrl] = useState<string>('');
+  const [imageName, setImageName] = useState<string>('');
+  const [uploadError, setUploadError] = useState<string>('');
+  const [submitError, setSubmitError] = useState<string>('');
+  const [createdListing, setCreatedListing] = useState<Listing | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Only JPG, PNG, or WEBP images are supported.');
+      return;
+    }
+
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setUploadError('Image must be 10MB or smaller.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageDataUrl(typeof reader.result === 'string' ? reader.result : '');
+      setImageName(file.name);
+      setUploadError('');
+    };
+    reader.onerror = () => {
+      setUploadError('Failed to read image file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = () => {
+    setSubmitError('');
+    const normalizedProductType = formData.productType.trim();
+    if (formData.category === 'Other' && !normalizedProductType) {
+      setSubmitError('Enter the product type for custom equipment.');
+      return;
+    }
     setStep('processing');
-    
-    // Simulate API/Blockchain delay
-    setTimeout(() => {
-      const newListing: Listing = {
-        id: `lst_${Date.now()}`,
-        title: formData.title,
-        category: formData.category as any,
-        description: formData.description,
-        specs: formData.specs.split(',').map(s => s.trim()).filter(s => s),
-        dailyRateUsdc: parseFloat(formData.price) || 0,
-        collateralValueUsdc: (parseFloat(formData.price) || 0) * 50, // Mock calculation: 50x daily rate
-        location: formData.location,
-        ownerId: MOCK_USER.id,
-        ownerName: 'You',
-        ownerAvatar: `https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=200&auto=format&fit=crop`,
-        imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000&auto=format&fit=crop', // Placeholder for demo
-        availability: 'active'
-      };
-      
-      onAdd(newListing);
+    void onAdd({
+      title: formData.title,
+      category: formData.category as CreateListingRequest['category'],
+      productType: normalizedProductType || undefined,
+      description: formData.description,
+      location: formData.location,
+      specs: formData.specs.split(',').map(s => s.trim()).filter(Boolean),
+      dailyRateUsdc: parseFloat(formData.price) || 0,
+      imageUrl: imageDataUrl || undefined
+    }).then((listing) => {
+      setCreatedListing(listing);
       setStep('success');
-    }, 2500);
+    }).catch((error) => {
+      setSubmitError(error instanceof Error ? error.message : 'Failed to publish listing.');
+      setStep('pricing');
+    });
   };
 
   return (
@@ -80,6 +118,19 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                     <p className="text-gray-500 max-w-xs mx-auto mb-8">
                         Your <strong>{formData.title}</strong> has been minted as an asset on Solana and is now available for rent.
                     </p>
+                    {createdListing && (
+                      <div className="w-full max-w-xl mb-8 text-left">
+                        <OnChainProofCard
+                          signature={createdListing.confirmedSignature}
+                          programId={createdListing.programId}
+                          accountLabel="Listing PDA"
+                          accountValue={createdListing.listingPda}
+                          confirmedSlot={createdListing.confirmedSlot}
+                          cluster={createdListing.chainCluster}
+                          protocolVersion={createdListing.protocolVersion}
+                        />
+                      </div>
+                    )}
                     <button 
                         onClick={onClose}
                         className="bg-black text-white px-8 py-3 rounded-xl font-medium hover:bg-gray-800 transition-all"
@@ -146,11 +197,25 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                                                 <option value="Drone">Drone</option>
                                                 <option value="Compute">Compute (GPU)</option>
                                                 <option value="Lighting">Lighting</option>
+                                                <option value="Audio">Audio / Speakers</option>
+                                                <option value="Event">Event Gear</option>
+                                                <option value="Other">Other</option>
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <Plus className="w-4 h-4 rotate-45" />
                                             </div>
                                         </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Product Type</label>
+                                        <input
+                                            type="text"
+                                            name="productType"
+                                            value={formData.productType}
+                                            onChange={handleChange}
+                                            placeholder={formData.category === 'Other' ? 'e.g. Stage Speaker, Mixer, Projector' : 'e.g. Cinema Camera, PA Speaker, LED Wall'}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-verent-green/20 focus:border-verent-green outline-none transition-all"
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Location</label>
@@ -197,7 +262,17 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
 
                     {step === 'upload' && (
                          <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
-                            <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center hover:bg-gray-50 hover:border-verent-green/50 transition-all cursor-pointer group">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={handleFileChange}
+                            />
+                            <div
+                              onClick={() => fileInputRef.current?.click()}
+                              className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center hover:bg-gray-50 hover:border-verent-green/50 transition-all cursor-pointer group"
+                            >
                                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-verent-green/10 transition-colors">
                                     <Camera className="w-8 h-8 text-gray-400 group-hover:text-verent-green transition-colors" />
                                 </div>
@@ -205,6 +280,15 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                                 <p className="text-sm text-gray-500 mt-1">Drag & drop or click to browse</p>
                                 <p className="text-xs text-gray-400 mt-4">Supported: JPG, PNG, WEBP (Max 10MB)</p>
                             </div>
+                            {imageDataUrl && (
+                              <div className="rounded-xl border border-gray-200 p-3 bg-white">
+                                <img src={imageDataUrl} alt="Listing preview" className="w-full max-h-72 object-contain rounded-lg bg-gray-50" />
+                                <p className="text-xs text-gray-500 mt-2">{imageName}</p>
+                              </div>
+                            )}
+                            {uploadError && (
+                              <p className="text-sm text-red-600">{uploadError}</p>
+                            )}
                             
                             <div className="bg-blue-50 p-4 rounded-xl flex items-start space-x-3">
                                 <Zap className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -230,7 +314,7 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                                         className="w-full pl-12 pr-4 py-4 bg-white border border-gray-200 rounded-xl text-2xl font-mono font-bold text-gray-900 focus:ring-2 focus:ring-verent-green/20 focus:border-verent-green outline-none transition-all"
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">Suggested rate for similar items: $120 - $150 / day</p>
+                                <p className="text-xs text-gray-500 mt-2">Suggested rate varies by category and product type. Use the exact gear type for better pricing accuracy.</p>
                             </div>
 
                             <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100">
@@ -247,6 +331,9 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                                     <span className="text-verent-green">95% of rental price</span>
                                 </div>
                             </div>
+                            {submitError && (
+                              <p className="text-sm text-red-600">{submitError}</p>
+                            )}
                         </div>
                     )}
                 </div>

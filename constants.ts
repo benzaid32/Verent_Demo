@@ -182,7 +182,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   { id: 'tx_1', type: 'deposit', amount: 1500, currency: 'USDC', date: '2023-10-01', status: 'confirmed', hash: '5x...9a' },
   { id: 'tx_2', type: 'stake', amount: 5000, currency: 'VRNT', date: '2023-10-05', status: 'confirmed', hash: '8s...2k' },
   { id: 'tx_3', type: 'rental_payment', amount: 360, currency: 'USDC', date: '2023-10-25', status: 'confirmed', hash: '3m...2k' },
-  { id: 'tx_4', type: 'claim_yield', amount: 12.50, currency: 'USDC', date: '2023-10-27', status: 'confirmed', hash: '9p...1z' },
+  { id: 'tx_4', type: 'claim_rewards', amount: 12.50, currency: 'VRNT', date: '2023-10-27', status: 'confirmed', hash: '9p...1z' },
   { id: 'tx_5', type: 'withdraw', amount: 0.5, currency: 'SOL', date: '2023-10-29', status: 'failed', hash: '2k...8p' },
 ];
 

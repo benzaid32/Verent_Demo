@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Listing, BookingStep } from '../types';
+import { Listing, BookingStep, Rental } from '../types';
 import { ShieldCheck, CheckCircle2, Loader2, FileText, Lock, ArrowRight, X, Fingerprint } from 'lucide-react';
 
 interface BookingModalProps {
@@ -9,13 +9,17 @@ interface BookingModalProps {
   rentalTotal: number;
   collateralAmount: number;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<Rental>;
+  onDone: () => void;
 }
 
-const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal, collateralAmount, onClose, onConfirm }) => {
+const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal, collateralAmount, onClose, onConfirm, onDone }) => {
   const [step, setStep] = useState<BookingStep>('summary');
   const [progress, setProgress] = useState(0);
+  const [createdRental, setCreatedRental] = useState<Rental | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
   const totalRequired = rentalTotal + collateralAmount;
+  const protocolFee = Math.max(0, rentalTotal - (listing.dailyRateUsdc * days));
 
   useEffect(() => {
     if (step === 'contract_check') {
@@ -31,17 +35,19 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
       }, 30);
       return () => clearInterval(interval);
     }
-
-    if (step === 'processing') {
-       const timer = setTimeout(() => {
-         setStep('confirmed');
-       }, 3000);
-       return () => clearTimeout(timer);
-    }
   }, [step]);
 
-  const handleSign = () => {
+  const handleSign = async () => {
+    setBookingError(null);
     setStep('processing');
+    try {
+      const rental = await onConfirm();
+      setCreatedRental(rental);
+      setStep('confirmed');
+    } catch (caughtError) {
+      setBookingError(caughtError instanceof Error ? caughtError.message : 'Failed to create escrow rental.');
+      setStep('signature');
+    }
   };
 
   return (
@@ -91,7 +97,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
                         </div>
                          <div className="flex justify-between text-sm">
                             <span className="text-gray-500">Protocol Fee</span>
-                            <span className="font-mono text-gray-900">${(rentalTotal * 0.05).toFixed(2)}</span>
+                            <span className="font-mono text-gray-900">${protocolFee.toFixed(2)}</span>
                         </div>
                          <div className="flex justify-between text-sm font-medium text-blue-600">
                             <span className="">Collateral (Refundable)</span>
@@ -164,7 +170,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
                      </div>
 
                      <button 
-                        onClick={handleSign}
+                        onClick={() => void handleSign()}
                         className="w-full bg-verent-green text-white py-4 rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-verent-green/20 flex items-center justify-center space-x-3"
                     >
                         <Fingerprint className="w-5 h-5" />
@@ -173,6 +179,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
                     <p className="text-xs text-center text-gray-400">
                         Your wallet will ask you to approve this request.
                     </p>
+                    {bookingError && (
+                        <p className="text-xs text-center text-red-500">{bookingError}</p>
+                    )}
                 </div>
             )}
 
@@ -211,8 +220,21 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
                         </p>
                     </div>
 
+                    {createdRental?.rentalEscrowPda && (
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 text-left space-y-2">
+                            <p className="text-xs font-bold text-gray-500 uppercase">Protocol Escrow</p>
+                            <p className="text-xs text-gray-700 break-all"><span className="font-semibold">Escrow PDA:</span> {createdRental.rentalEscrowPda}</p>
+                            {createdRental.paymentVault && (
+                                <p className="text-xs text-gray-700 break-all"><span className="font-semibold">Payment Vault:</span> {createdRental.paymentVault}</p>
+                            )}
+                            {createdRental.collateralVault && (
+                                <p className="text-xs text-gray-700 break-all"><span className="font-semibold">Collateral Vault:</span> {createdRental.collateralVault}</p>
+                            )}
+                        </div>
+                    )}
+
                     <button 
-                        onClick={onConfirm}
+                        onClick={onDone}
                         className="w-full bg-black text-white py-3.5 rounded-xl font-bold hover:bg-gray-800 transition-colors"
                     >
                         Go to Dashboard

@@ -1,21 +1,33 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useExportWallet, useSignAndSendTransaction, useWallets } from '@privy-io/react-auth/solana';
+import bs58 from 'bs58';
+import { Connection, PublicKey, SystemProgram, Transaction as SolanaTransaction } from '@solana/web3.js';
+import QRCode from 'qrcode';
 import { WalletState, Transaction } from '../types';
-import { Copy, ArrowUpRight, ArrowDownLeft, QrCode, RefreshCw, History, Shield, AlertCircle, Loader2, ExternalLink, CheckCircle2, Key, Eye, EyeOff, Lock, Coins, TrendingUp, Sparkles, Wallet } from 'lucide-react';
-import { MOCK_TRANSACTIONS } from '../constants';
+import { Copy, ArrowUpRight, ArrowDownLeft, RefreshCw, History, Shield, AlertCircle, Loader2, ExternalLink, CheckCircle2, Key, Lock, Wallet, Sparkles } from 'lucide-react';
 
 interface WalletViewProps {
   wallet: WalletState;
+  transactions: Transaction[];
+  onWithdraw: (
+    recipientAddress: string,
+    amount: number,
+    currency: 'SOL' | 'USDC' | 'VRNT',
+    meta?: { transactionHash?: string; explorerUrl?: string }
+  ) => Promise<{ transactionHash: string; explorerUrl: string }>;
+  onRefresh: () => Promise<void>;
 }
 
-const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
+const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdraw, onRefresh }) => {
+  const { wallets: embeddedWallets } = useWallets();
+  const { signAndSendTransaction } = useSignAndSendTransaction();
+  const { exportWallet } = useExportWallet();
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw' | 'history' | 'export'>('deposit');
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [currentSolBalance, setCurrentSolBalance] = useState(wallet.solBalance);
-  const [currentVrntBalance, setCurrentVrntBalance] = useState(wallet.vrntBalance);
-  const [currentStakedBalance, setCurrentStakedBalance] = useState(wallet.stakedVrntBalance);
-  const [currentTransactions, setCurrentTransactions] = useState(MOCK_TRANSACTIONS);
+  const [depositQrCode, setDepositQrCode] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   // Withdraw State
   const [withdrawAddress, setWithdrawAddress] = useState('');
@@ -23,10 +35,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
   const [withdrawCurrency, setWithdrawCurrency] = useState<'SOL' | 'USDC' | 'VRNT'>('SOL');
   const [withdrawStatus, setWithdrawStatus] = useState<'idle' | 'preparing' | 'signing' | 'confirming' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-
-  // Export Key State
-  const [showKey, setShowKey] = useState(false);
-  const [keyRevealed, setKeyRevealed] = useState(false);
+  const embeddedWallet = embeddedWallets.find((item) => item.address === wallet.address) ?? embeddedWallets[0];
 
   const handleCopy = () => {
     navigator.clipboard.writeText(wallet.address);
@@ -34,13 +43,39 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setCurrentSolBalance(prev => prev + 0.0001); // Simulate tiny staking reward
+    try {
+      await onRefresh();
+    } finally {
       setRefreshing(false);
-    }, 1500);
+    }
   };
+
+  useEffect(() => {
+    let disposed = false;
+
+    void QRCode.toDataURL(wallet.address, {
+      margin: 1,
+      width: 256,
+      color: {
+        dark: '#111111',
+        light: '#FFFFFF'
+      }
+    }).then((dataUrl) => {
+      if (!disposed) {
+        setDepositQrCode(dataUrl);
+      }
+    }).catch(() => {
+      if (!disposed) {
+        setDepositQrCode('');
+      }
+    });
+
+    return () => {
+      disposed = true;
+    };
+  }, [wallet.address]);
 
   const validateWithdrawal = () => {
     if (!withdrawAddress) return "Recipient address is required";
@@ -53,7 +88,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
     // Balance check
     const amount = Number(withdrawAmount);
     const fee = 0.000005;
-    if (withdrawCurrency === 'SOL' && amount + fee > currentSolBalance) {
+    if (withdrawCurrency === 'SOL' && amount + fee > wallet.solBalance) {
       return `Insufficient balance. You need ${amount + fee} SOL`;
     }
     
@@ -61,7 +96,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
       return `Insufficient USDC balance`;
     }
 
-    if (withdrawCurrency === 'VRNT' && amount > currentVrntBalance) {
+    if (withdrawCurrency === 'VRNT' && amount > wallet.vrntBalance) {
         return `Insufficient VRNT balance`;
     }
 
@@ -76,44 +111,78 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
       return;
     }
 
-    // Start simulated Transaction Lifecycle matching "old file"
+    if (withdrawCurrency !== 'SOL') {
+      setErrorMessage('Only SOL withdrawals are live right now. USDC and VRNT withdrawals require SPL token wiring.');
+      setWithdrawStatus('error');
+      return;
+    }
+
+    if (!embeddedWallet) {
+      setErrorMessage('Embedded Solana wallet not available in Privy yet.');
+      setWithdrawStatus('error');
+      return;
+    }
+
     setErrorMessage('');
     setWithdrawStatus('preparing');
 
     try {
-      // Step 1: Prepare (Simulating blockhash fetch)
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const amount = Number(withdrawAmount);
+      const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      const transaction = new SolanaTransaction({
+        feePayer: new PublicKey(embeddedWallet.address),
+        recentBlockhash: blockhash
+      }).add(
+        SystemProgram.transfer({
+          fromPubkey: new PublicKey(embeddedWallet.address),
+          toPubkey: new PublicKey(withdrawAddress),
+          lamports: Math.round(amount * 1_000_000_000)
+        })
+      );
+
       setWithdrawStatus('signing');
+      const result = await signAndSendTransaction({
+        transaction: new Uint8Array(transaction.serialize({
+          requireAllSignatures: false,
+          verifySignatures: false
+        })),
+        wallet: embeddedWallet,
+        chain: 'solana:devnet'
+      });
+      const transactionHash = bs58.encode(result.signature);
+      const explorerUrl = `https://explorer.solana.com/tx/${transactionHash}?cluster=devnet`;
 
-      // Step 2: Sign (Simulating Privy popup interaction)
-      await new Promise(resolve => setTimeout(resolve, 2000));
       setWithdrawStatus('confirming');
-
-      // Step 3: Confirm (Simulating Blockchain confirmation)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await connection.confirmTransaction({ signature: transactionHash, blockhash, lastValidBlockHeight }, 'confirmed');
+      await onWithdraw(withdrawAddress, amount, withdrawCurrency, {
+        transactionHash,
+        explorerUrl
+      });
       
-      // Success
       setWithdrawStatus('success');
-      if (withdrawCurrency === 'SOL') setCurrentSolBalance(prev => prev - Number(withdrawAmount));
-      if (withdrawCurrency === 'VRNT') setCurrentVrntBalance(prev => prev - Number(withdrawAmount));
-      
-      // Add to mock history
-      const newTx: Transaction = {
-        id: `tx_${Date.now()}`,
-        type: 'withdraw',
-        amount: Number(withdrawAmount),
-        currency: withdrawCurrency,
-        date: new Date().toISOString().split('T')[0],
-        status: 'confirmed',
-        hash: Array.from({length: 8}, () => Math.floor(Math.random() * 16).toString(16)).join('') + '...'
-      };
-      setCurrentTransactions(prev => [newTx, ...prev]);
       setWithdrawAmount('');
       setWithdrawAddress('');
 
-    } catch (e) {
-      setErrorMessage('Transaction failed on-chain. Please try again.');
+    } catch (caughtError) {
+      setErrorMessage(caughtError instanceof Error ? caughtError.message : 'Transaction failed on-chain. Please try again.');
       setWithdrawStatus('error');
+    }
+  };
+
+  const handleExportWallet = async () => {
+    if (!embeddedWallet) {
+      return;
+    }
+
+    setExporting(true);
+    try {
+      await exportWallet({ address: embeddedWallet.address });
+    } catch (caughtError) {
+      setErrorMessage(caughtError instanceof Error ? caughtError.message : 'Failed to open wallet export.');
+      setActiveTab('export');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -128,15 +197,15 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                     <div>
                         <span className="text-sm text-gray-400 font-medium uppercase tracking-wider flex items-center space-x-2">
                             <Wallet className="w-4 h-4" />
-                            <span>Total Equity</span>
+                            <span>Wallet Snapshot</span>
                             {refreshing && <Loader2 className="w-3 h-3 animate-spin" />}
                         </span>
                         <div className="mt-2 flex items-baseline space-x-2">
-                            <span className="text-5xl font-bold font-mono tracking-tighter text-white">${(wallet.usdcBalance + (currentVrntBalance * 0.45) + (currentStakedBalance * 0.45)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                            <span className="text-lg text-gray-500 font-medium">USD</span>
+                            <span className="text-2xl font-bold font-mono tracking-tight text-white">{wallet.address.slice(0, 6)}...{wallet.address.slice(-6)}</span>
                         </div>
+                        <p className="mt-2 text-xs text-gray-500">Updated {new Date(wallet.updatedAt).toLocaleString()}</p>
                     </div>
-                    <button onClick={handleRefresh} className="p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors" title="Refresh Balance">
+                    <button onClick={() => void handleRefresh()} className="p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors" title="Refresh Balance">
                         <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
@@ -144,20 +213,18 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                 <div className="mt-8 grid grid-cols-3 gap-4">
                     <div className="bg-white/5 p-3 rounded-lg border border-white/5 backdrop-blur-sm">
                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Liquid USDC</p>
-                         <p className="text-lg font-mono font-medium text-white">${wallet.usdcBalance.toLocaleString()}</p>
+                         <p className="text-lg font-mono font-medium text-white">{wallet.usdcBalance.toLocaleString()} USDC</p>
                     </div>
                     <div className="bg-white/5 p-3 rounded-lg border border-white/5 backdrop-blur-sm">
                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">VRNT Tokens</p>
-                         <p className="text-lg font-mono font-medium text-verent-green">{currentVrntBalance.toLocaleString()}</p>
-                         <p className="text-[10px] text-gray-500">≈ ${(currentVrntBalance * 0.45).toLocaleString()}</p>
+                         <p className="text-lg font-mono font-medium text-verent-green">{wallet.vrntBalance.toLocaleString()} VRNT</p>
                     </div>
                     <div className="bg-white/5 p-3 rounded-lg border border-white/5 backdrop-blur-sm relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-1">
                             <Lock className="w-3 h-3 text-gray-600" />
                         </div>
                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Staked VRNT</p>
-                         <p className="text-lg font-mono font-medium text-blue-400">{currentStakedBalance.toLocaleString()}</p>
-                         <p className="text-[10px] text-gray-500">APY 12.4%</p>
+                         <p className="text-lg font-mono font-medium text-blue-400">{wallet.stakedVrntBalance.toLocaleString()} VRNT</p>
                     </div>
                 </div>
             </div>
@@ -171,8 +238,8 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                  </div>
                  
                  <div className="text-center py-6">
-                    <p className="text-3xl font-mono font-bold text-gray-900">{currentSolBalance.toFixed(4)} <span className="text-base font-sans font-medium text-gray-500">SOL</span></p>
-                    <p className="text-xs text-gray-400 mt-1">Enough for ~{(currentSolBalance / 0.000005).toFixed(0)} transactions</p>
+                    <p className="text-3xl font-mono font-bold text-gray-900">{wallet.solBalance.toFixed(4)} <span className="text-base font-sans font-medium text-gray-500">SOL</span></p>
+                    <p className="text-xs text-gray-400 mt-1">Enough for ~{(wallet.solBalance / 0.000005).toFixed(0)} transactions</p>
                  </div>
 
                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 mt-2">
@@ -224,7 +291,13 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                     
                     <div className="bg-white p-6 rounded-2xl border-2 border-dashed border-gray-200 shadow-sm relative group">
                         <div className="absolute inset-0 bg-verent-green/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none"></div>
-                        <QrCode className="w-48 h-48 text-gray-900" />
+                        {depositQrCode ? (
+                          <img src={depositQrCode} alt="Wallet deposit QR code" className="w-48 h-48 rounded-xl" />
+                        ) : (
+                          <div className="w-48 h-48 rounded-xl bg-gray-50 flex items-center justify-center text-xs text-gray-500 font-medium text-center px-6">
+                            Generating QR code...
+                          </div>
+                        )}
                     </div>
 
                     <div className="w-full max-w-md">
@@ -317,9 +390,9 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                                     <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Amount</label>
                                     <span className="text-xs text-gray-500">
                                         Available: <span className="font-medium text-gray-900">{
-                                            withdrawCurrency === 'SOL' ? currentSolBalance.toFixed(4) :
+                                            withdrawCurrency === 'SOL' ? wallet.solBalance.toFixed(4) :
                                             withdrawCurrency === 'USDC' ? wallet.usdcBalance.toFixed(2) :
-                                            currentVrntBalance.toLocaleString()
+                                            wallet.vrntBalance.toLocaleString()
                                         } {withdrawCurrency}</span>
                                     </span>
                                 </div>
@@ -333,9 +406,9 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                                     />
                                     <button 
                                         onClick={() => setWithdrawAmount(
-                                            withdrawCurrency === 'SOL' ? (currentSolBalance - 0.00001).toFixed(4) :
+                                            withdrawCurrency === 'SOL' ? (wallet.solBalance - 0.00001).toFixed(4) :
                                             withdrawCurrency === 'USDC' ? wallet.usdcBalance.toString() :
-                                            currentVrntBalance.toString()
+                                            wallet.vrntBalance.toString()
                                         )}
                                         className="absolute right-2 top-2 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-verent-green hover:bg-gray-50 uppercase"
                                     >
@@ -409,7 +482,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                     </div>
 
                     <div className="space-y-2">
-                        {currentTransactions.map((tx) => (
+                        {transactions.map((tx) => (
                             <div key={tx.id} className="bg-white border border-gray-200 p-4 rounded-xl hover:bg-gray-50 transition-colors group">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-4">
@@ -417,13 +490,14 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                                             tx.type === 'deposit' ? 'bg-green-100 text-green-600' :
                                             tx.type === 'withdraw' ? 'bg-gray-100 text-gray-600' :
                                             tx.type === 'stake' ? 'bg-purple-100 text-purple-600' :
-                                            tx.type === 'claim_yield' ? 'bg-yellow-100 text-yellow-600' :
+                                            tx.type === 'claim_rewards' || tx.type === 'claim_yield' ? 'bg-yellow-100 text-yellow-600' :
+                                            tx.type === 'request_unstake' || tx.type === 'finalize_unstake' || tx.type === 'unstake' ? 'bg-orange-100 text-orange-600' :
                                             'bg-blue-50 text-blue-600'
                                         }`}>
                                             {tx.type === 'deposit' ? <ArrowDownLeft className="w-5 h-5" /> : 
                                              tx.type === 'withdraw' ? <ArrowUpRight className="w-5 h-5" /> :
                                              tx.type === 'stake' ? <Lock className="w-5 h-5" /> :
-                                             tx.type === 'claim_yield' ? <Sparkles className="w-5 h-5" /> :
+                                             tx.type === 'claim_rewards' || tx.type === 'claim_yield' ? <Sparkles className="w-5 h-5" /> :
                                              <RefreshCw className="w-5 h-5" />}
                                         </div>
                                         <div>
@@ -436,8 +510,8 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className={`font-mono font-medium ${tx.type === 'deposit' || tx.type === 'claim_yield' ? 'text-verent-green' : 'text-gray-900'}`}>
-                                            {tx.type === 'deposit' || tx.type === 'claim_yield' ? '+' : '-'}{tx.amount} {tx.currency}
+                                        <p className={`font-mono font-medium ${tx.type === 'deposit' || tx.type === 'claim_rewards' || tx.type === 'claim_yield' || tx.type === 'finalize_unstake' ? 'text-verent-green' : 'text-gray-900'}`}>
+                                            {tx.type === 'deposit' || tx.type === 'claim_rewards' || tx.type === 'claim_yield' || tx.type === 'finalize_unstake' ? '+' : '-'}{tx.amount} {tx.currency}
                                         </p>
                                         <div className="flex items-center justify-end space-x-2 mt-1">
                                             <span className={`text-[10px] px-1.5 py-0.5 rounded border uppercase font-bold ${
@@ -447,7 +521,13 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                                             }`}>
                                                 {tx.status}
                                             </span>
-                                            <ExternalLink className="w-3 h-3 text-gray-300 group-hover:text-gray-500 cursor-pointer" />
+                                            {tx.explorerUrl ? (
+                                              <a href={tx.explorerUrl} target="_blank" rel="noreferrer" className="text-gray-300 group-hover:text-gray-500">
+                                                <ExternalLink className="w-3 h-3 cursor-pointer" />
+                                              </a>
+                                            ) : (
+                                              <ExternalLink className="w-3 h-3 text-gray-300 group-hover:text-gray-500 cursor-pointer" />
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -468,31 +548,26 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet }) => {
                         <p className="text-sm text-gray-500 mt-2">Backup your wallet or import it into Phantom/Solflare. <br/> <span className="text-orange-600 font-medium">Never share this key with anyone.</span></p>
                     </div>
 
-                    {!showKey ? (
-                        <button 
-                            onClick={() => setShowKey(true)}
-                            className="w-full py-3 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-left space-y-3">
+                        <p className="text-sm font-semibold text-gray-900">Managed by Privy Embedded Wallet</p>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          Privy opens a secure export modal so only you can view your private key. The app never receives the key material.
+                        </p>
+                        <button
+                          onClick={() => void handleExportWallet()}
+                          disabled={!embeddedWallet || exporting}
+                          className="w-full py-3 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                         >
-                            Reveal Private Key
+                          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                          <span>{exporting ? 'Opening Secure Export...' : 'Export with Privy'}</span>
                         </button>
-                    ) : (
-                         <div className="bg-gray-900 rounded-xl p-6 text-left relative group cursor-pointer" onClick={() => setKeyRevealed(!keyRevealed)}>
-                             <p className="text-xs text-gray-400 mb-2 uppercase font-bold tracking-wider">Private Key</p>
-                             <div className="font-mono text-sm text-white break-all leading-relaxed">
-                                {keyRevealed 
-                                    ? "4k3...92x (Simulated Private Key for Security)" 
-                                    : "••••••••••••••••••••••••••••••••••••••••••••••••••••••••"}
-                             </div>
-                             <div className="absolute top-4 right-4 text-gray-500">
-                                 {keyRevealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                             </div>
-                             {!keyRevealed && (
-                                 <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm rounded-xl">
-                                     <span className="text-xs text-white font-medium bg-black/50 px-3 py-1 rounded-full border border-white/10">Click to Reveal</span>
-                                 </div>
-                             )}
-                         </div>
-                    )}
+                        {!embeddedWallet && (
+                          <p className="text-xs text-amber-700">No embedded Solana wallet is available for export yet.</p>
+                        )}
+                        {activeTab === 'export' && errorMessage && (
+                          <p className="text-xs text-red-600">{errorMessage}</p>
+                        )}
+                    </div>
                  </div>
             )}
         </div>

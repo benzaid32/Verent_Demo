@@ -25,5 +25,13 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "anchor",
+    "backend",
+    "dist",
+    "e2e",
+    "files",
+    "node_modules"
+  ]
 }

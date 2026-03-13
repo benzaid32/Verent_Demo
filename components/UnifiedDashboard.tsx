@@ -1,39 +1,121 @@
 
-import React, { useState } from 'react';
-import { MOCK_RENTALS, MOCK_LENDING } from '../constants';
-import { QrCode, Scan, ArrowRight, Clock, CheckCircle2, Plus, PackageCheck } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import QRCode from 'qrcode';
+import { QrCode, Scan, ArrowRight, Clock, CheckCircle2, Plus, ExternalLink } from 'lucide-react';
 import AddListingModal from './AddListingModal';
+import type { CreateListingRequest } from '../shared/contracts';
+import type { Listing, Rental } from '../types';
 
 interface UnifiedDashboardProps {
   initialTab?: 'renting' | 'lending';
+  rentingRentals: Rental[];
+  lendingRentals: Rental[];
+  onAcceptRental: (rentalId: string) => Promise<void>;
+  onConfirmPickup: (rentalId: string, code: string) => Promise<void>;
+  onCompleteRental: (rentalId: string, code: string) => Promise<void>;
+  onCreateListing: (payload: CreateListingRequest) => Promise<Listing>;
 }
 
-const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ initialTab = 'renting' }) => {
+type RentalModalState =
+  | { type: 'pickup_qr' | 'return_qr'; rental: Rental }
+  | { type: 'confirm_pickup' | 'confirm_return'; rental: Rental }
+  | null;
+
+const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
+  initialTab = 'renting',
+  rentingRentals,
+  lendingRentals,
+  onAcceptRental,
+  onConfirmPickup,
+  onCompleteRental,
+  onCreateListing
+}) => {
   const [activeTab, setActiveTab] = useState<'renting' | 'lending'>(initialTab);
-  const [showQR, setShowQR] = useState<string | null>(null);
+  const [modalState, setModalState] = useState<RentalModalState>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const rentals = activeTab === 'renting' ? MOCK_RENTALS : MOCK_LENDING;
+  const rentals = activeTab === 'renting' ? rentingRentals : lendingRentals;
 
-  const handleListingAdded = () => {
-    setIsAddModalOpen(false);
-    setShowSuccessToast(true);
-    // Auto hide toast after 3 seconds
-    setTimeout(() => setShowSuccessToast(false), 3000);
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (!modalState || (modalState.type !== 'pickup_qr' && modalState.type !== 'return_qr')) {
+      setQrDataUrl('');
+      return;
+    }
+
+    const code = modalState.type === 'pickup_qr' ? modalState.rental.pickupCode : modalState.rental.returnCode;
+    if (!code) {
+      setQrDataUrl('');
+      return;
+    }
+
+    void QRCode.toDataURL(JSON.stringify({
+      rentalId: modalState.rental.id,
+      code,
+      kind: modalState.type === 'pickup_qr' ? 'pickup' : 'return'
+    }), {
+      margin: 1,
+      width: 224,
+      color: {
+        dark: '#111827',
+        light: '#FFFFFF'
+      }
+    }).then(setQrDataUrl).catch(() => setQrDataUrl(''));
+  }, [modalState]);
+
+  const stats = useMemo(() => {
+    const allRentals = [...rentingRentals, ...lendingRentals];
+    return {
+      active: allRentals.filter((item) => item.status === 'active').length,
+      completed: allRentals.filter((item) => item.status === 'completed').length,
+      pendingHandshake: allRentals.filter((item) => item.status === 'pending_approval' || item.status === 'pending_pickup').length
+    };
+  }, [lendingRentals, rentingRentals]);
+
+  const handleListingAdded = async (payload: CreateListingRequest) => {
+    return onCreateListing(payload);
+  };
+
+  const closeModal = () => {
+    setModalState(null);
+    setVerificationCode('');
+    setActionError('');
+    setIsSubmitting(false);
+  };
+
+  const submitVerification = async () => {
+    if (!modalState || (modalState.type !== 'confirm_pickup' && modalState.type !== 'confirm_return')) {
+      return;
+    }
+    if (!verificationCode.trim()) {
+      setActionError('Enter the code shown by the renter.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setActionError('');
+    try {
+      if (modalState.type === 'confirm_pickup') {
+        await onConfirmPickup(modalState.rental.id, verificationCode.trim().toUpperCase());
+      } else {
+        await onCompleteRental(modalState.rental.id, verificationCode.trim().toUpperCase());
+      }
+      closeModal();
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : 'Failed to verify rental code.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8 animate-in fade-in duration-500 relative">
-        
-        {/* Success Toast */}
-        {showSuccessToast && (
-            <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center space-x-3 animate-in slide-in-from-top-4 duration-300">
-                <PackageCheck className="w-5 h-5 text-verent-green" />
-                <span className="text-sm font-medium">Item added to inventory successfully</span>
-            </div>
-        )}
-
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Command Center</h1>
@@ -76,30 +158,30 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ initialTab = 'renti
                     <div className="p-2 bg-blue-50 rounded-lg">
                         <Clock className="w-5 h-5 text-blue-600" />
                     </div>
-                    <span className="text-2xl font-bold text-gray-900">2</span>
+                    <span className="text-2xl font-bold text-gray-900">{stats.active}</span>
                 </div>
                 <p className="text-sm font-medium text-gray-900">Active Rentals</p>
-                <p className="text-xs text-gray-500">Requires attention</p>
+                <p className="text-xs text-gray-500">Live across renting and lending</p>
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-start mb-4">
                      <div className="p-2 bg-green-50 rounded-lg">
                         <CheckCircle2 className="w-5 h-5 text-green-600" />
                     </div>
-                    <span className="text-2xl font-bold text-gray-900">12</span>
+                    <span className="text-2xl font-bold text-gray-900">{stats.completed}</span>
                 </div>
                 <p className="text-sm font-medium text-gray-900">Completed</p>
-                <p className="text-xs text-gray-500">Lifetime total</p>
+                <p className="text-xs text-gray-500">Persisted rental history</p>
             </div>
              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-start mb-4">
                      <div className="p-2 bg-orange-50 rounded-lg">
                         <Scan className="w-5 h-5 text-orange-600" />
                     </div>
-                    <span className="text-2xl font-bold text-gray-900">1</span>
+                    <span className="text-2xl font-bold text-gray-900">{stats.pendingHandshake}</span>
                 </div>
                 <p className="text-sm font-medium text-gray-900">Pending Handshake</p>
-                <p className="text-xs text-gray-500">Action needed</p>
+                <p className="text-xs text-gray-500">Awaiting approval or code verification</p>
             </div>
         </div>
 
@@ -136,11 +218,18 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ initialTab = 'renti
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
                                         rental.status === 'active' ? 'bg-green-100 text-green-700' :
                                         rental.status === 'pending_pickup' ? 'bg-orange-100 text-orange-700' :
+                                        rental.status === 'pending_approval' ? 'bg-blue-100 text-blue-700' :
+                                        rental.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
                                         'bg-gray-100 text-gray-600'
                                     }`}>
                                         {rental.status.replace('_', ' ')}
                                     </span>
                                     <span className="text-xs text-gray-400 font-mono">${rental.totalCost}</span>
+                                    {rental.explorerUrl && (
+                                      <a href={rental.explorerUrl} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs text-gray-400 hover:text-gray-600">
+                                        <ExternalLink className="w-3 h-3" />
+                                      </a>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -149,15 +238,47 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ initialTab = 'renti
                         <div className="flex-shrink-0">
                             {activeTab === 'renting' && rental.status === 'pending_pickup' && (
                                 <button 
-                                    onClick={() => setShowQR(rental.id)}
+                                    onClick={() => setModalState({ type: 'pickup_qr', rental })}
                                     className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
                                 >
                                     <QrCode className="w-4 h-4" />
                                     <span>Show Pickup QR</span>
                                 </button>
                             )}
-                             {activeTab === 'lending' && rental.status === 'return_pending' && (
-                                <button className="flex items-center space-x-2 bg-verent-green text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium">
+                            {activeTab === 'renting' && rental.status === 'active' && (
+                                <button 
+                                    onClick={() => setModalState({ type: 'return_qr', rental })}
+                                    className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                                >
+                                    <QrCode className="w-4 h-4" />
+                                    <span>Show Return QR</span>
+                                </button>
+                            )}
+                            {activeTab === 'lending' && rental.status === 'pending_approval' && (
+                                <button
+                                    onClick={async () => {
+                                      await onAcceptRental(rental.id);
+                                    }}
+                                    className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                                >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>Approve Escrow</span>
+                                </button>
+                            )}
+                            {activeTab === 'lending' && rental.status === 'pending_pickup' && (
+                                <button
+                                  onClick={() => setModalState({ type: 'confirm_pickup', rental })}
+                                  className="flex items-center space-x-2 bg-verent-green text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
+                                >
+                                    <Scan className="w-4 h-4" />
+                                    <span>Confirm Pickup</span>
+                                </button>
+                            )}
+                            {activeTab === 'lending' && rental.status === 'active' && (
+                                <button
+                                  onClick={() => setModalState({ type: 'confirm_return', rental })}
+                                  className="flex items-center space-x-2 bg-verent-green text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
+                                >
                                     <Scan className="w-4 h-4" />
                                     <span>Scan Return QR</span>
                                 </button>
@@ -175,20 +296,74 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ initialTab = 'renti
         </div>
 
         {/* QR Modal Overlay */}
-        {showQR && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowQR(null)}>
+        {modalState && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
                 <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Digital Handshake</h3>
-                    <p className="text-sm text-gray-500 mb-6">Show this to the owner to unlock the smart contract escrow.</p>
-                    <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 inline-block mb-6">
-                        <QrCode className="w-48 h-48 text-gray-900" />
-                    </div>
-                    <button 
-                        onClick={() => setShowQR(null)}
-                        className="w-full py-3 bg-gray-100 text-gray-900 font-medium rounded-xl hover:bg-gray-200 transition-colors"
-                    >
-                        Close
-                    </button>
+                    {modalState.type === 'pickup_qr' || modalState.type === 'return_qr' ? (
+                      <>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">
+                          {modalState.type === 'pickup_qr' ? 'Pickup QR' : 'Return QR'}
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                          {modalState.type === 'pickup_qr'
+                            ? 'Show this live rental QR to the owner during handoff.'
+                            : 'Show this return QR to the owner when returning the asset.'}
+                        </p>
+                        <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 inline-block mb-4">
+                          {qrDataUrl ? (
+                            <img src={qrDataUrl} alt="Rental verification QR" className="w-48 h-48" />
+                          ) : (
+                            <QrCode className="w-48 h-48 text-gray-900" />
+                          )}
+                        </div>
+                        <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-left">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-2">Verification Code</p>
+                          <p className="font-mono text-lg font-bold text-gray-900">
+                            {modalState.type === 'pickup_qr' ? modalState.rental.pickupCode : modalState.rental.returnCode}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={closeModal}
+                          className="w-full py-3 bg-gray-100 text-gray-900 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+                        >
+                          Close
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">
+                          {modalState.type === 'confirm_pickup' ? 'Confirm Pickup' : 'Complete Return'}
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-6">
+                          Enter the code shown by the renter to {modalState.type === 'confirm_pickup' ? 'activate the rental on-chain' : 'confirm the return and settle the escrow on-chain'}.
+                        </p>
+                        <input
+                          value={verificationCode}
+                          onChange={(event) => setVerificationCode(event.target.value.toUpperCase())}
+                          placeholder="ENTER CODE"
+                          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-center font-mono text-lg tracking-[0.2em] uppercase outline-none focus:border-verent-green focus:bg-white focus:ring-2 focus:ring-verent-green/20"
+                        />
+                        {actionError && (
+                          <p className="mt-3 text-sm text-red-600">{actionError}</p>
+                        )}
+                        <div className="mt-6 space-y-3">
+                          <button
+                            onClick={() => void submitVerification()}
+                            disabled={isSubmitting}
+                            className="w-full py-3 bg-black text-white font-medium rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60"
+                          >
+                            {isSubmitting ? 'Submitting...' : modalState.type === 'confirm_pickup' ? 'Confirm Pickup On-Chain' : 'Settle Return On-Chain'}
+                          </button>
+                          <button 
+                            onClick={closeModal}
+                            disabled={isSubmitting}
+                            className="w-full py-3 bg-gray-100 text-gray-900 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    )}
                 </div>
             </div>
         )}
