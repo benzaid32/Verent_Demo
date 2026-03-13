@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+backend/dist
 dist-ssr
 *.local
 .env
@@ -22,6 +23,9 @@ anchor/target
 anchor/.anchor
 anchor/test-ledger
 anchor/node_modules
+test-results
+playwright-report
+coverage
 
 # Editor directories and files
 .vscode/*

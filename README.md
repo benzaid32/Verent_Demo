@@ -1,197 +1,153 @@
-# Verent Protocol: Master Technical Specification
+# Verent
 
-**Version:** 1.0 (MVP)  
-**Target Audience:** Web3 Event Organizers, Production Teams, & Investors  
-**Mission:** Build the liquidity layer for Real-World Assets (RWA) by replacing the 40% fees of traditional rental houses with a 5% Protocol Fee using blockchain escrow and identity-based collateral.
+Verent is a Solana devnet equipment-rental platform for real-world assets such as cameras, drones, lighting, audio gear, and compute inventory.
 
----
+It combines:
+- Privy embedded Solana wallets
+- a Fastify + Supabase backend
+- an Anchor rental escrow program
+- a live on-chain `VRNT` staking system that reduces renter collateral requirements
 
-## 1. Project Overview
+## What is live
 
-Verent is a Decentralized Physical Infrastructure Network (DePIN) for peer-to-peer equipment rentals on Solana. 
+- Real Privy-backed embedded wallet login
+- Real Solana devnet listing and rental protocol metadata
+- Real wallet balance reads for `SOL`, `USDC`, and `VRNT`
+- Rental escrow flow with listing registration, rental funding, acceptance, pickup, return, and completion
+- Real on-chain `VRNT` staking with:
+  - stake
+  - request unstake
+  - finalize unstake after cooldown
+  - claim `VRNT` rewards
+- Tier-based collateral logic derived from live staked `VRNT`
 
-**Key Innovation:** "Stake-to-Rent" — Users stake crypto/tokens to lower collateral requirements based on their on-chain reputation.
+## Stake-to-rent model
 
-### Core Value Prop
-*   **For Owners:** Monetize idle high-value assets (cameras, GPUs, drones) with automated trust.
-*   **For Renters:** Access professional gear without exorbitant insurance holds or rental house premiums.
-*   **Trust Architecture:** Identity (Privy) + Payments (Solana) + Verification (QR Handshake).
+The platform reduces collateral requirements based on the renter's live staked `VRNT` balance:
 
----
+- Tier 1: `100%` collateral
+- Tier 2: `50%` collateral
+- Tier 3: `10%` collateral
 
-## 2. Core Tech Stack
+The tier is derived from the on-chain staking position, and rental quotes are enforced by backend logic rather than trusted from the client.
 
-This architecture is chosen for speed, security, and compatibility.
+## Tech stack
 
-| Layer | Technology | Reasoning |
-|-------|------------|-----------|
-| **Frontend** | React 18 + Vite | Fast SPA architecture. |
-| **Language** | TypeScript | Strict typing for financial/asset logic. |
-| **UI System** | Tailwind CSS | Enterprise-grade, pixel-perfect styling. |
-| **Auth & Wallet** | Privy | Email-to-Wallet embedded infrastructure (No external wallet required). |
-| **Database** | Supabase (Postgres) | Relational data + Realtime Chat. |
-| **Storage** | Supabase Storage | Image hosting for Listings/Evidence. |
-| **Blockchain** | Solana Web3.js | High-speed, low-cost interaction with Escrow Program. |
-| **QR System** | react-qr-code | The physical "Handshake" mechanism for asset handover. |
-| **State Mgmt** | React State / Context | Efficient local state management for MVP. |
-| **Icons** | Lucide React | Consistent, clean iconography. |
+- Frontend: React, Vite, TypeScript, Tailwind, Privy
+- Backend: Node.js, Fastify, TypeScript, Supabase
+- Chain: Solana devnet, Anchor, SPL Token
+- Storage: Supabase Storage
+- Testing: Vitest, Playwright
 
----
+## Repo structure
 
-## 3. Architecture & User Flow
-
-### A. The Embedded Wallet Model
-*   **No External Connection:** Users do not need Phantom/Metamask initially.
-*   **The Bank:** Users sign up via Email. This generates a non-custodial Solana Embedded Wallet.
-*   **Funding:** Users Deposit USDC/SOL into this embedded wallet to rent.
-*   **Withdrawal:** Users can withdraw funds to an external exchange/wallet at any time.
-
-### B. The Rental Lifecycle
-1.  **Discovery:** Renter finds item (e.g., RED Komodo Camera).
-2.  **Communication:** Renter messages Owner to discuss logistics/specs (Realtime Chat).
-3.  **Escrow Lock:** Renter signs transaction. USDC moves `User Wallet` -> `Protocol Escrow`.
-4.  **Handshake (Pickup):** Owner scans Renter's QR Code app. Protocol verifies location/time.
-5.  **Usage:** Rental is Active on-chain.
-6.  **Handshake (Return):** Owner scans Renter's QR Code upon return.
-7.  **Settlement:** Funds released to Owner (95%) and Treasury (5%). Collateral returned to Renter.
-
----
-
-## 4. Database Schema (Supabase SQL)
-
-### 1. Profiles (Synced with Privy DID)
-```sql
-create table profiles (
-  wallet_address text primary key, -- The Privy Embedded Wallet Address
-  email text,
-  username text,
-  avatar_url text,
-  reputation_score int default 0, -- 0 to 100
-  verification_tier int default 1, -- 1=Social, 2=Staker, 3=Pro
-  created_at timestamptz default now()
-);
+```text
+.
+├─ anchor/      # Solana / Anchor program
+├─ backend/     # Fastify API, Supabase integration, Solana verification scripts
+├─ components/  # Frontend UI
+├─ context/     # Frontend app context and wallet transaction flows
+├─ docs/        # Devnet and Solana Playground guides
+├─ shared/      # Shared contracts and Solana instruction builders
+└─ supabase/    # SQL migrations
 ```
 
-### 2. Listings (RWA Inventory)
-```sql
-create table listings (
-  id uuid default gen_random_uuid() primary key,
-  owner_address text references profiles(wallet_address),
-  title text not null,
-  description text,
-  technical_specs text, -- e.g., "Includes PL Mount"
-  daily_price_usdc numeric not null,
-  collateral_value_usdc numeric not null, -- Replacement value
-  category text, -- 'Camera', 'Lighting', 'Audio', 'Drones'
-  images text[],
-  status text default 'active', -- 'active', 'rented', 'maintenance'
-  location_city text,
-  created_at timestamptz default now()
-);
+## Local development
+
+Requirements:
+
+- Node.js 20+
+- npm
+- Supabase project
+- Privy app configured for embedded Solana wallets
+
+Install dependencies:
+
+```bash
+npm install
+npm --prefix backend install
 ```
 
-### 3. Rentals (The State Machine)
-```sql
-create table rentals (
-  id uuid default gen_random_uuid() primary key,
-  listing_id uuid references listings(id),
-  renter_address text references profiles(wallet_address),
-  owner_address text references profiles(wallet_address),
-  
-  -- Financials
-  total_price_usdc numeric,
-  platform_fee_usdc numeric,
-  collateral_locked_usdc numeric,
-  
-  -- State
-  status text default 'pending_approval', -- pending_approval, approved, funded, active, completed, disputed
-  
-  -- The Handshake Logic
-  pickup_otp text, -- Generated by Renter app
-  return_otp text, -- Generated by Renter app
-  
-  start_date timestamptz,
-  end_date timestamptz,
-  created_at timestamptz default now()
-);
+Create env files:
+
+- Root `.env` from `.env.example`
+- `backend/.env` from `backend/.env.example`
+
+Start the app:
+
+```bash
+npm run dev
+npm --prefix backend run dev
 ```
 
-### 4. Messages (Realtime Communication)
-```sql
-create table conversations (
-  id uuid default gen_random_uuid() primary key,
-  participant_a text references profiles(wallet_address),
-  participant_b text references profiles(wallet_address),
-  listing_id uuid references listings(id), -- Context for the chat
-  last_message_at timestamptz default now()
-);
+Frontend runs on `http://localhost:3000` and backend on `http://localhost:4000`.
 
-create table messages (
-  id uuid default gen_random_uuid() primary key,
-  conversation_id uuid references conversations(id),
-  sender_address text references profiles(wallet_address),
-  content text not null,
-  is_read boolean default false,
-  created_at timestamptz default now()
-);
+## Important env values
+
+Root `.env`
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:4000
+VITE_PRIVY_APP_ID=
+VITE_PRIVY_CLIENT_ID=
+VITE_VERENT_RENTALS_PROGRAM_ID=
 ```
 
----
+Backend `.env`
 
-## 5. Detailed Application Views
-
-### View 1: The Marketplace (Home)
-*   **Header:** Search bar + Filter Chips (Category, Location).
-*   **Grid:** High-fidelity cards showing Image, Title, Price/Day.
-*   **Logic:** Fetches only `active` listings.
-
-### View 2: Listing Detail
-*   **Layout:** Immersive hero image, technical specs grid (critical for B2B).
-*   **Action:** "Rent Now" button checks wallet balance.
-*   **Trust:** Displays Owner Reputation and Insurance badges.
-*   **Communication:** "Contact Owner" button initiates a chat session.
-
-### View 3: Messaging Center (Inbox)
-*   **Layout:** Split view (Conversation List + Chat Window).
-*   **Purpose:** Logistics coordination and trust vetting before transaction.
-*   **Tech:** Realtime WebSocket updates.
-
-### View 4: Dashboard (Command Center)
-*   **Renting Tab:** Active rentals, Pickup QR codes, status tracking.
-*   **Lending Tab:** Fleet management, Earnings, Return scanning.
-*   **AI Assistant:** Fleet optimization and revenue forecasting.
-
-### View 5: Wallet Manager
-*   **Display:** Total Equity (USDC + SOL).
-*   **Deposit:** QR code for the Embedded Wallet Address.
-*   **Withdraw:** Form to send USDC to external SOL addresses.
-*   **Security:** Export Private Key functionality (Non-custodial).
-
----
-
-## 6. Business Logic: "Stake-to-Rent"
-
-Collateral requirements are dynamic based on user reputation.
-
-```typescript
-const calculateCollateral = (assetValue: number, userTier: number) => {
-  // Tier 1 (New User): 100% Collateral Required
-  // Tier 2 (Verified ID): 50% Collateral Required
-  // Tier 3 (Staker/Pro): 10% Collateral Required
-  
-  switch(userTier) {
-    case 3: return assetValue * 0.10;
-    case 2: return assetValue * 0.50;
-    default: return assetValue;
-  }
-}
+```dotenv
+SOLANA_RPC_URL=https://api.devnet.solana.com
+SOLANA_CLUSTER=devnet
+VERENT_RENTALS_PROGRAM_ID=
+VERENT_USDC_MINT=
+VERENT_VRNT_MINT=
+VERENT_STAKING_COOLDOWN_SECONDS=604800
+VERENT_STAKING_REWARD_RATE_VRNT_PER_SECOND=0
+VERENT_STAKING_INITIAL_REWARD_VRNT=0
 ```
 
----
+Never commit real `.env` files or live service secrets.
 
-## 7. Security Guidelines
+## Devnet operations
 
-1.  **Row Level Security (RLS):** Users can only edit their own listings and view their own messages.
-2.  **Input Sanitization:** Strict typing and validation on all forms.
-3.  **Escrow Safety:** The frontend never sends funds directly to the owner. Funds move to the Escrow PDA.
-4.  **Non-Custodial:** Users own their keys (exportable via Wallet view).
+Useful commands:
+
+```bash
+npm run typecheck
+npm run test
+npm --prefix backend run protocol:init
+npm --prefix backend run staking:init
+npm --prefix backend run verify:devnet
+```
+
+Detailed deployment and Playground steps live in:
+
+- `docs/devnet-runbook.md`
+- `docs/solana-playground-guide.md`
+
+## Frontend deployment
+
+For Vercel:
+
+- import the repo from GitHub
+- keep the project root at the repository root
+- set `VITE_API_BASE_URL`
+- set `VITE_PRIVY_APP_ID`
+- set `VITE_PRIVY_CLIENT_ID` if your Privy app requires it
+- set `VITE_VERENT_RENTALS_PROGRAM_ID`
+
+The repo includes `vercel.json` so Vercel uses:
+
+- install command: `npm install`
+- build command: `npm run build`
+- output directory: `dist`
+
+## Public repo notes
+
+This repo intentionally excludes:
+
+- real env files
+- generated test output
+- backend build artifacts
+
+The committed code is the source of truth; generated runtime artifacts should be rebuilt locally or in CI.
