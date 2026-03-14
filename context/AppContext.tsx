@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { usePrivy } from '@privy-io/react-auth';
 import { useSignAndSendTransaction, useWallets } from '@privy-io/react-auth/solana';
 import bs58 from 'bs58';
-import { Connection, PublicKey, Transaction as SolanaTransaction } from '@solana/web3.js';
+import { Connection, PublicKey, SystemProgram, Transaction as SolanaTransaction, TransactionInstruction } from '@solana/web3.js';
 import type {
   CreateListingRequest,
   DashboardPayload,
@@ -13,7 +13,7 @@ import type {
   UpdateListingRequest
 } from '../shared/contracts';
 import { buildAcceptRentalInstruction, buildClaimRewardsInstruction, buildCompleteRentalInstruction, buildConfirmPickupInstruction, buildConfirmReturnInstruction, buildCreateRentalEscrowInstructions, buildFinalizeUnstakeInstruction, buildRegisterListingInstruction, buildRequestUnstakeInstruction, buildStakeInstruction, buildUpdateListingInstruction } from '../shared/protocol-instructions';
-import { buildSolanaExplorerTxUrl } from '../shared/protocol';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, buildSolanaExplorerTxUrl, deriveAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '../shared/protocol';
 import { acceptRentalApi, analyzeFleetApi, ApiError, bootstrap, clearSessionToken, completeRentalApi, confirmPickupApi, createListingApi, createRentalApi, getQuote, getStoredToken, login, markNotificationsReadApi, openConversationApi, sendMessageApi, stakeApi, storeToken, updateListingApi, updateSettingsApi, withdrawApi } from '../services/api';
 import type { AIAnalysisResponse, Conversation, Listing, QuoteResponse, Rental, Transaction, WalletState } from '../types';
 
@@ -37,9 +37,9 @@ interface AppContextValue {
   updateListing: (listingId: string, payload: UpdateListingRequest) => Promise<Listing>;
   requestQuote: (listingId: string, days: number) => Promise<QuoteResponse>;
   createRental: (listingId: string, days: number) => Promise<Rental>;
-  acceptRentalById: (rentalId: string) => Promise<void>;
-  confirmPickupById: (rentalId: string, code: string) => Promise<void>;
-  completeRentalById: (rentalId: string, code: string) => Promise<void>;
+  acceptRentalById: (rentalId: string) => Promise<Rental>;
+  confirmPickupById: (rentalId: string, code: string) => Promise<Rental>;
+  completeRentalById: (rentalId: string, code: string) => Promise<Rental>;
   openConversationForListing: (listingId: string) => Promise<Conversation>;
   sendMessage: (conversationId: string, text: string) => Promise<void>;
   markNotificationsRead: () => Promise<void>;
@@ -50,7 +50,7 @@ interface AppContextValue {
     currency: 'SOL' | 'USDC' | 'VRNT',
     meta?: { transactionHash?: string; explorerUrl?: string }
   ) => Promise<{ transactionHash: string; explorerUrl: string }>;
-  stake: (amount: number | undefined, action: StakeRequest['action']) => Promise<{ transactionHash: string; explorerUrl: string }>;
+  stake: (amount: number | undefined, action: StakeRequest['action']) => Promise<{ transactionHash: string; explorerUrl: string; confirmedSlot?: number }>;
   analyzeFleet: () => Promise<AIAnalysisResponse>;
 }
 
@@ -104,6 +104,13 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       transaction.add(instruction);
     }
 
+    const simulation = await connection.simulateTransaction(transaction);
+    if (simulation.value.err) {
+      const logs = simulation.value.logs ?? [];
+      const relevantLog = [...logs].reverse().find((line) => line.toLowerCase().includes('error') || line.toLowerCase().includes('failed'));
+      throw new Error(relevantLog ?? JSON.stringify(simulation.value.err));
+    }
+
     const result = await signAndSendTransaction({
       transaction: new Uint8Array(transaction.serialize({
         requireAllSignatures: false,
@@ -124,6 +131,23 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       explorerUrl: buildSolanaExplorerTxUrl(signature),
       confirmedSlot: confirmation.value?.slot
     };
+  };
+
+  const buildCreateAssociatedTokenAccountInstruction = (payer: string, owner: string, mint: string) => {
+    const associatedTokenAddress = deriveAssociatedTokenAddress(owner, mint);
+
+    return new TransactionInstruction({
+      programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+      keys: [
+        { pubkey: new PublicKey(payer), isSigner: true, isWritable: true },
+        { pubkey: associatedTokenAddress, isSigner: false, isWritable: true },
+        { pubkey: new PublicKey(owner), isSigner: false, isWritable: false },
+        { pubkey: new PublicKey(mint), isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+      ],
+      data: Buffer.alloc(0)
+    });
   };
 
   const hydrate = async () => {
@@ -319,8 +343,10 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
         explorerUrl: chainResult.explorerUrl,
         confirmedSlot: chainResult.confirmedSlot
       });
-      setLendingRentals((prev) => prev.map((item) => (item.id === rentalId ? mapRental(rental) : item)));
-      setRentingRentals((prev) => prev.map((item) => (item.id === rentalId ? mapRental(rental) : item)));
+      const nextRental = mapRental(rental);
+      setLendingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
+      setRentingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
+      return nextRental;
     },
     confirmPickupById: async (rentalId, code) => {
       if (!profile?.walletAddress) {
@@ -329,6 +355,9 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       const rentalToConfirm = lendingRentals.find((item) => item.id === rentalId);
       if (!rentalToConfirm?.rentalEscrowPda) {
         throw new Error('Rental escrow PDA is missing');
+      }
+      if (!rentalToConfirm.pickupCode || rentalToConfirm.pickupCode.trim().toUpperCase() !== code.trim().toUpperCase()) {
+        throw new Error('Pickup code does not match this rental.');
       }
 
       const instruction = await buildConfirmPickupInstruction({
@@ -344,8 +373,10 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
         explorerUrl: chainResult.explorerUrl,
         confirmedSlot: chainResult.confirmedSlot
       });
-      setLendingRentals((prev) => prev.map((item) => (item.id === rentalId ? mapRental(rental) : item)));
-      setRentingRentals((prev) => prev.map((item) => (item.id === rentalId ? mapRental(rental) : item)));
+      const nextRental = mapRental(rental);
+      setLendingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
+      setRentingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
+      return nextRental;
     },
     completeRentalById: async (rentalId, code) => {
       if (!profile?.walletAddress) {
@@ -355,6 +386,9 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       if (!rentalToComplete?.rentalEscrowPda || !rentalToComplete.paymentVault || !rentalToComplete.collateralVault || !rentalToComplete.renterWalletAddress || !rentalToComplete.settlementMint || !rentalToComplete.treasuryUsdcAccount) {
         throw new Error('Rental is missing protocol accounts needed for completion');
       }
+      if (!rentalToComplete.returnCode || rentalToComplete.returnCode.trim().toUpperCase() !== code.trim().toUpperCase()) {
+        throw new Error('Return code does not match this rental.');
+      }
 
       const confirmReturnInstruction = await buildConfirmReturnInstruction({
         ownerWalletAddress: profile.walletAddress,
@@ -362,6 +396,8 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
         returnCode: code,
         programId: rentalToComplete.programId
       });
+      const ownerPaymentAccount = deriveAssociatedTokenAddress(profile.walletAddress, rentalToComplete.settlementMint);
+      const ownerPaymentAccountInfo = await connection.getAccountInfo(ownerPaymentAccount, 'confirmed');
       const completeInstruction = await buildCompleteRentalInstruction({
         ownerWalletAddress: profile.walletAddress,
         renterWalletAddress: rentalToComplete.renterWalletAddress,
@@ -372,15 +408,28 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
         treasuryUsdcAccount: rentalToComplete.treasuryUsdcAccount,
         programId: rentalToComplete.programId
       });
-      const chainResult = await signAndConfirmInstructions([confirmReturnInstruction, completeInstruction]);
+      const instructions = ownerPaymentAccountInfo
+        ? [confirmReturnInstruction, completeInstruction]
+        : [
+            buildCreateAssociatedTokenAccountInstruction(
+              profile.walletAddress,
+              profile.walletAddress,
+              rentalToComplete.settlementMint
+            ),
+            confirmReturnInstruction,
+            completeInstruction
+          ];
+      const chainResult = await signAndConfirmInstructions(instructions);
       const rental = await completeRentalApi(rentalId, {
         code,
         transactionHash: chainResult.signature,
         explorerUrl: chainResult.explorerUrl,
         confirmedSlot: chainResult.confirmedSlot
       });
-      setLendingRentals((prev) => prev.map((item) => (item.id === rentalId ? mapRental(rental) : item)));
-      setRentingRentals((prev) => prev.map((item) => (item.id === rentalId ? mapRental(rental) : item)));
+      const nextRental = mapRental(rental);
+      setLendingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
+      setRentingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
+      return nextRental;
     },
     openConversationForListing: async (listingId) => {
       const conversation = await openConversationApi(listingId);
@@ -474,7 +523,8 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       await hydrate();
       return {
         transactionHash: result.transactionHash,
-        explorerUrl: result.explorerUrl
+        explorerUrl: result.explorerUrl,
+        confirmedSlot: chainResult.confirmedSlot
       };
     },
     analyzeFleet: analyzeFleetApi

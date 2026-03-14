@@ -112,6 +112,12 @@ const App: React.FC = () => {
     setCurrentView('messages');
   };
 
+  const handleMessageOwnerForListing = async (listingId: string) => {
+    const conversation = await openConversationForListing(listingId);
+    setSelectedConversationId(conversation.id);
+    setCurrentView('messages');
+  };
+
   // Handle Rental Transaction (Triggered by BookingModal)
   const handleRent = async (days: number) => {
     if (!selectedListing) {
@@ -268,6 +274,7 @@ const App: React.FC = () => {
                   onConfirmPickup={confirmPickupById}
                   onCompleteRental={completeRentalById}
                   onCreateListing={createListing}
+                  onMessageOwner={handleMessageOwnerForListing}
                 />
             )}
 

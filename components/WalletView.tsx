@@ -2,10 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import { useExportWallet, useSignAndSendTransaction, useWallets } from '@privy-io/react-auth/solana';
 import bs58 from 'bs58';
-import { Connection, PublicKey, SystemProgram, Transaction as SolanaTransaction } from '@solana/web3.js';
+import { Connection, PublicKey, SystemProgram, Transaction as SolanaTransaction, TransactionInstruction } from '@solana/web3.js';
 import QRCode from 'qrcode';
 import { WalletState, Transaction } from '../types';
 import { Copy, ArrowUpRight, ArrowDownLeft, RefreshCw, History, Shield, AlertCircle, Loader2, ExternalLink, CheckCircle2, Key, Lock, Wallet, Sparkles } from 'lucide-react';
+import TransactionSuccessDialog from './TransactionSuccessDialog';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, deriveAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '../shared/protocol';
 
 interface WalletViewProps {
   wallet: WalletState;
@@ -20,6 +22,7 @@ interface WalletViewProps {
 }
 
 const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdraw, onRefresh }) => {
+  const DEVNET_USDC_MINT = import.meta.env.VITE_VERENT_USDC_MINT?.trim() || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
   const { wallets: embeddedWallets } = useWallets();
   const { signAndSendTransaction } = useSignAndSendTransaction();
   const { exportWallet } = useExportWallet();
@@ -35,6 +38,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
   const [withdrawCurrency, setWithdrawCurrency] = useState<'SOL' | 'USDC' | 'VRNT'>('SOL');
   const [withdrawStatus, setWithdrawStatus] = useState<'idle' | 'preparing' | 'signing' | 'confirming' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [withdrawProof, setWithdrawProof] = useState<{ signature: string; recipient: string } | null>(null);
   const embeddedWallet = embeddedWallets.find((item) => item.address === wallet.address) ?? embeddedWallets[0];
 
   const handleCopy = () => {
@@ -77,13 +81,71 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
     };
   }, [wallet.address]);
 
+  const encodeU64 = (value: bigint) => {
+    const buffer = Buffer.alloc(8);
+    buffer.writeBigUInt64LE(value);
+    return buffer;
+  };
+
+  const buildCreateAssociatedTokenAccountInstruction = (payer: string, owner: string, mint: string) => {
+    const associatedTokenAddress = deriveAssociatedTokenAddress(owner, mint);
+
+    return new TransactionInstruction({
+      programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+      keys: [
+        { pubkey: new PublicKey(payer), isSigner: true, isWritable: true },
+        { pubkey: associatedTokenAddress, isSigner: false, isWritable: true },
+        { pubkey: new PublicKey(owner), isSigner: false, isWritable: false },
+        { pubkey: new PublicKey(mint), isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+      ],
+      data: Buffer.alloc(0)
+    });
+  };
+
+  const buildTransferCheckedInstruction = (params: {
+    source: string;
+    mint: string;
+    destination: string;
+    owner: string;
+    amount: bigint;
+    decimals: number;
+  }) => new TransactionInstruction({
+    programId: TOKEN_PROGRAM_ID,
+    keys: [
+      { pubkey: new PublicKey(params.source), isSigner: false, isWritable: true },
+      { pubkey: new PublicKey(params.mint), isSigner: false, isWritable: false },
+      { pubkey: new PublicKey(params.destination), isSigner: false, isWritable: true },
+      { pubkey: new PublicKey(params.owner), isSigner: true, isWritable: false }
+    ],
+    data: Buffer.concat([
+      Buffer.from([12]),
+      encodeU64(params.amount),
+      Buffer.from([params.decimals])
+    ])
+  });
+
+  const getTokenMintForCurrency = (currency: 'SOL' | 'USDC' | 'VRNT') => {
+    if (currency === 'USDC') {
+      return DEVNET_USDC_MINT;
+    }
+    if (currency === 'VRNT') {
+      return wallet.vrntMint;
+    }
+    return undefined;
+  };
+
   const validateWithdrawal = () => {
     if (!withdrawAddress) return "Recipient address is required";
     if (!withdrawAmount) return "Amount is required";
     if (isNaN(Number(withdrawAmount)) || Number(withdrawAmount) <= 0) return "Invalid amount";
-    
-    // Simple simulated address check (Solana addresses are base58, usually 32-44 chars)
-    if (withdrawAddress.length < 32 || withdrawAddress.length > 44) return "Invalid Solana address format";
+
+    try {
+      new PublicKey(withdrawAddress);
+    } catch {
+      return "Invalid Solana address format";
+    }
 
     // Balance check
     const amount = Number(withdrawAmount);
@@ -100,6 +162,10 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
         return `Insufficient VRNT balance`;
     }
 
+    if ((withdrawCurrency === 'USDC' || withdrawCurrency === 'VRNT') && !getTokenMintForCurrency(withdrawCurrency)) {
+      return `${withdrawCurrency} mint is not configured for this wallet`;
+    }
+
     return null;
   };
 
@@ -107,12 +173,6 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
     const error = validateWithdrawal();
     if (error) {
       setErrorMessage(error);
-      setWithdrawStatus('error');
-      return;
-    }
-
-    if (withdrawCurrency !== 'SOL') {
-      setErrorMessage('Only SOL withdrawals are live right now. USDC and VRNT withdrawals require SPL token wiring.');
       setWithdrawStatus('error');
       return;
     }
@@ -130,16 +190,43 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
       const amount = Number(withdrawAmount);
       const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      const payerAddress = embeddedWallet.address;
       const transaction = new SolanaTransaction({
         feePayer: new PublicKey(embeddedWallet.address),
         recentBlockhash: blockhash
-      }).add(
-        SystemProgram.transfer({
-          fromPubkey: new PublicKey(embeddedWallet.address),
-          toPubkey: new PublicKey(withdrawAddress),
-          lamports: Math.round(amount * 1_000_000_000)
-        })
-      );
+      });
+
+      if (withdrawCurrency === 'SOL') {
+        transaction.add(
+          SystemProgram.transfer({
+            fromPubkey: new PublicKey(payerAddress),
+            toPubkey: new PublicKey(withdrawAddress),
+            lamports: Math.round(amount * 1_000_000_000)
+          })
+        );
+      } else {
+        const mint = getTokenMintForCurrency(withdrawCurrency);
+        if (!mint) {
+          throw new Error(`${withdrawCurrency} mint is not configured`);
+        }
+
+        const senderTokenAccount = deriveAssociatedTokenAddress(payerAddress, mint);
+        const recipientTokenAccount = deriveAssociatedTokenAddress(withdrawAddress, mint);
+        const recipientTokenAccountInfo = await connection.getAccountInfo(recipientTokenAccount, 'confirmed');
+
+        if (!recipientTokenAccountInfo) {
+          transaction.add(buildCreateAssociatedTokenAccountInstruction(payerAddress, withdrawAddress, mint));
+        }
+
+        transaction.add(buildTransferCheckedInstruction({
+          source: senderTokenAccount.toBase58(),
+          mint,
+          destination: recipientTokenAccount.toBase58(),
+          owner: payerAddress,
+          amount: BigInt(Math.round(amount * 1_000_000)),
+          decimals: 6
+        }));
+      }
 
       setWithdrawStatus('signing');
       const result = await signAndSendTransaction({
@@ -161,6 +248,10 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
       });
       
       setWithdrawStatus('success');
+      setWithdrawProof({
+        signature: transactionHash,
+        recipient: withdrawAddress
+      });
       setWithdrawAmount('');
       setWithdrawAddress('');
 
@@ -337,9 +428,9 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                                 <CheckCircle2 className="w-8 h-8" />
                             </div>
                             <h3 className="text-lg font-bold text-green-900">Transaction Successful</h3>
-                            <p className="text-sm text-green-700">Your funds are on the way. Check your history for the transaction hash.</p>
+                            <p className="text-sm text-green-700">Your transfer was confirmed on Solana and detailed proof is available in the on-chain dialog.</p>
                             <button 
-                                onClick={() => { setWithdrawStatus('idle'); setWithdrawAmount(''); setWithdrawAddress(''); }}
+                                onClick={() => { setWithdrawStatus('idle'); setWithdrawAmount(''); setWithdrawAddress(''); setWithdrawProof(null); }}
                                 className="mt-4 bg-white border border-green-200 text-green-700 px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-50"
                             >
                                 Make Another Transfer
@@ -572,6 +663,18 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
             )}
         </div>
       </div>
+
+      <TransactionSuccessDialog
+        isOpen={Boolean(withdrawProof)}
+        title="Withdrawal Confirmed On-Chain"
+        description="This transfer has been confirmed on Solana devnet and the signature below is the proof persisted for your wallet activity."
+        onClose={() => setWithdrawProof(null)}
+        closeLabel="Continue"
+        signature={withdrawProof?.signature}
+        accountLabel="Recipient Wallet"
+        accountValue={withdrawProof?.recipient}
+        cluster="devnet"
+      />
     </div>
   );
 };

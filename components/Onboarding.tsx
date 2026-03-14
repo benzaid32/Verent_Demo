@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLoginWithEmail, usePrivy } from '@privy-io/react-auth';
 import { useCreateWallet, useWallets } from '@privy-io/react-auth/solana';
 import { ArrowRight, Server, Search, Mail, CheckCircle2, Loader2, ChevronLeft, ShieldCheck } from 'lucide-react';
@@ -19,6 +19,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
   const { sendCode, loginWithCode } = useLoginWithEmail();
   const { createWallet } = useCreateWallet();
   const { wallets } = useWallets();
+  const latestUserRef = useRef(user);
+  const latestWalletsRef = useRef(wallets);
   const [step, setStep] = useState<Step>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [email, setEmail] = useState('');
@@ -34,6 +36,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
     delay: Math.random() * 5,
     duration: 3 + Math.random() * 4
   }));
+
+  useEffect(() => {
+    latestUserRef.current = user;
+  }, [user]);
+
+  useEffect(() => {
+    latestWalletsRef.current = wallets;
+  }, [wallets]);
 
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
@@ -78,10 +88,26 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
         getWalletAddressFromWallets(wallets);
 
       if (!resolvedWalletAddress) {
-        const createdWallet = await createWallet();
-        resolvedWalletAddress =
-          getWalletAddressFromCreateWalletResult(createdWallet) ??
-          getWalletAddressFromWallets(wallets);
+        resolvedWalletAddress = await waitForEmbeddedWalletAddress(resultUser, latestUserRef, latestWalletsRef);
+      }
+
+      if (!resolvedWalletAddress) {
+        try {
+          const createdWallet = await createWallet();
+          resolvedWalletAddress =
+            getWalletAddressFromCreateWalletResult(createdWallet) ??
+            await waitForEmbeddedWalletAddress(resultUser, latestUserRef, latestWalletsRef);
+        } catch (caughtWalletError) {
+          const message = caughtWalletError instanceof Error ? caughtWalletError.message : '';
+          if (!message.toLowerCase().includes('already has an embedded wallet')) {
+            throw caughtWalletError;
+          }
+          resolvedWalletAddress = await waitForEmbeddedWalletAddress(resultUser, latestUserRef, latestWalletsRef);
+        }
+      }
+
+      if (!resolvedWalletAddress) {
+        throw new Error('Privy wallet address is not available yet. Please try again in a moment.');
       }
 
       await onComplete(email, selectedRole, privyToken, resolvedWalletAddress);
@@ -444,6 +470,31 @@ function getWalletAddressFromCreateWalletResult(result: unknown): string | undef
     return candidate.walletAddress;
   }
   return undefined;
+}
+
+async function waitForEmbeddedWalletAddress(
+  loginUser: unknown,
+  latestUserRef: React.MutableRefObject<unknown>,
+  latestWalletsRef: React.MutableRefObject<unknown>
+) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const resolvedWalletAddress =
+      getWalletAddressFromPrivyUser(loginUser) ??
+      getWalletAddressFromPrivyUser(latestUserRef.current) ??
+      getWalletAddressFromWallets(latestWalletsRef.current);
+    if (resolvedWalletAddress) {
+      return resolvedWalletAddress;
+    }
+    await sleep(400);
+  }
+
+  return undefined;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 export default Onboarding;

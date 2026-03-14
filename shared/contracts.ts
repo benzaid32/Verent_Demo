@@ -60,6 +60,8 @@ export interface WalletSnapshot {
   claimableVrnt?: number;
   pendingUnstakeVrnt?: number;
   unstakeAvailableAt?: string;
+  stakingCooldownSeconds?: number;
+  estimatedApy?: number;
   stakingConfigPda?: string;
   stakePositionPda?: string;
   stakeVault?: string;
@@ -153,6 +155,11 @@ export interface ConversationRecord {
   participantRole: 'Owner' | 'Renter';
   relatedItemId?: string;
   relatedItemTitle?: string;
+  contextListingId?: string;
+  contextListingTitle?: string;
+  contextListingThumbnail?: string;
+  contextRentalId?: string;
+  contextRentalStatus?: RentalStatus;
   lastMessage: string;
   lastMessageDate: string;
   unreadCount: number;

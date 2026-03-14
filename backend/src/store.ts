@@ -131,6 +131,8 @@ function mapWalletRow(row: any): WalletSnapshot {
     claimableVrnt: row.claimable_vrnt !== undefined ? Number(row.claimable_vrnt) : undefined,
     pendingUnstakeVrnt: row.pending_unstake_vrnt !== undefined ? Number(row.pending_unstake_vrnt) : undefined,
     unstakeAvailableAt: row.unstake_available_at ?? undefined,
+    stakingCooldownSeconds: row.staking_cooldown_seconds !== undefined ? Number(row.staking_cooldown_seconds) : undefined,
+    estimatedApy: row.estimated_apy !== undefined ? Number(row.estimated_apy) : undefined,
     stakingConfigPda: row.staking_config_pda ?? undefined,
     stakePositionPda: row.stake_position_pda ?? undefined,
     stakeVault: row.stake_vault ?? undefined,
@@ -163,6 +165,8 @@ async function buildRealWalletSnapshot(address: string, stored?: Partial<WalletS
     claimableVrnt: staking.claimableVrnt,
     pendingUnstakeVrnt: staking.pendingUnstakeVrnt,
     unstakeAvailableAt: staking.unstakeAvailableAt,
+    stakingCooldownSeconds: staking.stakingCooldownSeconds,
+    estimatedApy: staking.estimatedApy,
     stakingConfigPda: staking.stakingConfigPda,
     stakePositionPda: staking.stakePositionPda,
     stakeVault: staking.stakeVault,
@@ -422,33 +426,85 @@ export async function getDashboard(profileId: string): Promise<DashboardPayload>
       if (conversation.profile_id) {
         return conversation.profile_id === profile.id;
       }
-      if (conversation.participant_id === profile.id) {
-        return true;
-      }
-      return (messageRows ?? []).some((message) => message.conversation_id === conversation.id && message.sender_id === profile.id);
+      return false;
     });
 
-    const conversations = scopedConversationRows.map((conversation) => ({
-      id: conversation.id,
-      participantId: conversation.participant_id,
-      participantName: conversation.participant_name,
-      participantAvatar: conversation.participant_avatar,
-      participantRole: conversation.participant_role,
-      relatedItemId: conversation.related_item_id ?? undefined,
-      relatedItemTitle: conversation.related_item_title ?? undefined,
-      lastMessage: conversation.last_message,
-      lastMessageDate: conversation.last_message_date,
-      unreadCount: conversation.unread_count,
-      messages: (messageRows ?? [])
-        .filter((message) => message.conversation_id === conversation.id)
-        .map((message) => ({
+    const conversationParticipantIds = [...new Set(scopedConversationRows.map((conversation) => conversation.participant_id).filter(Boolean))];
+    const { data: participantRows } = conversationParticipantIds.length > 0
+      ? await supabase.from('profiles').select('id, username, avatar_url').in('id', conversationParticipantIds)
+      : { data: [] as any[] };
+    const participantById = new Map((participantRows ?? []).map((participant) => [participant.id, participant]));
+
+    const listingById = new Map((listingRows ?? []).map((listing) => [listing.id, listing]));
+    const rentalsByPair = new Map<string, any[]>();
+    for (const rental of rentalRows ?? []) {
+      const matchesCurrentProfile = rental.renter_id === profile.id || rental.owner_id === profile.id;
+      if (!matchesCurrentProfile) {
+        continue;
+      }
+      const counterpartyId = rental.renter_id === profile.id ? rental.owner_id : rental.renter_id;
+      const key = `${counterpartyId}:${rental.listing_id ?? ''}`;
+      const current = rentalsByPair.get(key) ?? [];
+      current.push(rental);
+      rentalsByPair.set(key, current);
+    }
+
+    const conversationGroups = new Map<string, any[]>();
+    for (const conversation of scopedConversationRows) {
+      const key = conversation.participant_id || conversation.id;
+      const current = conversationGroups.get(key) ?? [];
+      current.push(conversation);
+      conversationGroups.set(key, current);
+    }
+
+    const conversations = [...conversationGroups.values()].map((group) => {
+      const conversationIds = new Set(group.map((conversation) => conversation.id));
+      const mergedMessages = (messageRows ?? [])
+        .filter((message) => conversationIds.has(message.conversation_id))
+        .sort((left, right) => new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime());
+
+      const canonicalConversation = [...group].sort((left, right) => {
+        const leftMessageAt = mergedMessages.filter((message) => message.conversation_id === left.id).at(-1)?.timestamp;
+        const rightMessageAt = mergedMessages.filter((message) => message.conversation_id === right.id).at(-1)?.timestamp;
+        return new Date(rightMessageAt || 0).getTime() - new Date(leftMessageAt || 0).getTime();
+      })[0] ?? group[0];
+
+      const participant = participantById.get(canonicalConversation.participant_id);
+      const contextListing = listingById.get(canonicalConversation.related_item_id);
+      const pairRentals = rentalsByPair.get(`${canonicalConversation.participant_id}:${canonicalConversation.related_item_id ?? ''}`) ?? [];
+      const contextRental = [...pairRentals].sort((left, right) =>
+        new Date(right.created_at || right.start_date || 0).getTime() - new Date(left.created_at || left.start_date || 0).getTime()
+      )[0];
+
+      return {
+        id: canonicalConversation.id,
+        participantId: canonicalConversation.participant_id,
+        participantName: participant?.username || canonicalConversation.participant_name,
+        participantAvatar: participant?.avatar_url || canonicalConversation.participant_avatar,
+        participantRole: canonicalConversation.participant_role,
+        relatedItemId: contextListing?.id ?? canonicalConversation.related_item_id ?? undefined,
+        relatedItemTitle: contextListing?.title ?? canonicalConversation.related_item_title ?? undefined,
+        contextListingId: contextListing?.id ?? canonicalConversation.related_item_id ?? undefined,
+        contextListingTitle: contextListing?.title ?? canonicalConversation.related_item_title ?? undefined,
+        contextListingThumbnail: contextListing?.image_url ?? undefined,
+        contextRentalId: contextRental?.id ?? undefined,
+        contextRentalStatus: contextRental?.status ?? undefined,
+        lastMessage: mergedMessages.at(-1)?.text || canonicalConversation.last_message,
+        lastMessageDate: canonicalConversation.last_message_date,
+        unreadCount: group.reduce((sum, conversation) => sum + (conversation.unread_count ?? 0), 0),
+        messages: mergedMessages.map((message) => ({
           id: message.id,
           senderId: message.sender_id,
           text: message.text,
           timestamp: message.timestamp,
           isRead: message.is_read
         }))
-    }));
+      };
+    }).sort((left, right) => {
+      const leftAt = left.messages.at(-1)?.timestamp || left.lastMessageDate || '';
+      const rightAt = right.messages.at(-1)?.timestamp || right.lastMessageDate || '';
+      return new Date(rightAt || 0).getTime() - new Date(leftAt || 0).getTime();
+    });
 
     let wallet = walletRow ? mapWalletRow(walletRow) : await buildRealWalletSnapshot(profile.walletAddress);
     if (isLegacyMockWallet(wallet) && (transactionRows?.length ?? 0) === 0) {
@@ -560,6 +616,15 @@ export async function getDashboard(profileId: string): Promise<DashboardPayload>
       await saveData(data);
     }
   }
+  const participantById = new Map(data.profiles.map((item) => [item.id, item]));
+  const conversationsByParticipant = new Map<string, ConversationRecord[]>();
+  for (const conversation of data.conversations) {
+    const key = conversation.participantId || conversation.id;
+    const current = conversationsByParticipant.get(key) ?? [];
+    current.push(conversation);
+    conversationsByParticipant.set(key, current);
+  }
+
   return {
     profile,
     wallet,
@@ -567,7 +632,30 @@ export async function getDashboard(profileId: string): Promise<DashboardPayload>
     myListings: data.listings.filter((item) => item.ownerId === profile.id),
     rentingRentals: data.rentals.filter((item) => item.renterId === profile.id),
     lendingRentals: data.rentals.filter((item) => item.ownerId === profile.id),
-    conversations: data.conversations,
+    conversations: [...conversationsByParticipant.values()].map((group) => {
+      const canonicalConversation = group.at(-1) ?? group[0];
+      const participant = participantById.get(canonicalConversation.participantId);
+      const relatedListing = data.listings.find((item) => item.id === canonicalConversation.relatedItemId);
+      const relatedRental = data.rentals
+        .filter((item) => item.listingId === canonicalConversation.relatedItemId)
+        .sort((left, right) => new Date(right.createdAt || right.startDate || 0).getTime() - new Date(left.createdAt || left.startDate || 0).getTime())[0];
+      return {
+        ...canonicalConversation,
+        participantName: participant?.username || canonicalConversation.participantName,
+        participantAvatar: participant?.avatarUrl || canonicalConversation.participantAvatar,
+        contextListingId: relatedListing?.id ?? canonicalConversation.relatedItemId,
+        contextListingTitle: relatedListing?.title ?? canonicalConversation.relatedItemTitle,
+        contextListingThumbnail: relatedListing?.imageUrl,
+        contextRentalId: relatedRental?.id,
+        contextRentalStatus: relatedRental?.status,
+        unreadCount: group.reduce((sum, conversation) => sum + conversation.unreadCount, 0),
+        messages: group.flatMap((conversation) => conversation.messages).sort((left, right) => new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime())
+      };
+    }).sort((left, right) => {
+      const leftAt = left.messages.at(-1)?.timestamp || left.lastMessageDate || '';
+      const rightAt = right.messages.at(-1)?.timestamp || right.lastMessageDate || '';
+      return new Date(rightAt || 0).getTime() - new Date(leftAt || 0).getTime();
+    }),
     notifications: data.notifications,
     transactions: data.transactions.filter((item) => item.profileId === profile.id),
     devices: data.devices
@@ -820,16 +908,35 @@ export async function createOrOpenConversation(profileId: string, listingId: str
       throw new Error('Owners cannot start a conversation with themselves');
     }
 
-    const { data: existingConversation } = await supabase
+    const { data: existingConversations } = await supabase
       .from('conversations')
       .select('*')
       .eq('profile_id', profileId)
       .eq('participant_id', listingRow.owner_id)
-      .eq('related_item_id', listingId)
-      .maybeSingle();
+      .order('id');
+    const existingConversation = existingConversations?.[0];
     if (existingConversation) {
+      await supabase.from('conversations').update({
+        related_item_id: listingId,
+        related_item_title: listingRow.title
+      }).eq('id', existingConversation.id);
+
+      const { data: counterpartRows } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('profile_id', listingRow.owner_id)
+        .eq('participant_id', profile.id)
+        .order('id');
+      const counterpartRow = counterpartRows?.[0];
+      if (counterpartRow) {
+        await supabase.from('conversations').update({
+          related_item_id: listingId,
+          related_item_title: listingRow.title
+        }).eq('id', counterpartRow.id);
+      }
+
       const dashboard = await getDashboard(profileId);
-      const conversation = dashboard.conversations.find((item) => item.id === existingConversation.id);
+      const conversation = dashboard.conversations.find((item) => item.participantId === listingRow.owner_id);
       if (!conversation) {
         throw new Error('Conversation not found');
       }
@@ -889,8 +996,11 @@ export async function createOrOpenConversation(profileId: string, listingId: str
     throw new Error('Owners cannot start a conversation with themselves');
   }
 
-  const existingConversation = data.conversations.find((item) => item.participantId === listing.ownerId && item.relatedItemId === listingId);
+  const existingConversation = data.conversations.find((item) => item.participantId === listing.ownerId);
   if (existingConversation) {
+    existingConversation.relatedItemId = listingId;
+    existingConversation.relatedItemTitle = listing.title;
+    await saveData(data);
     return existingConversation;
   }
 
@@ -931,13 +1041,13 @@ export async function addMessage(conversationId: string, senderId: string, text:
         is_read: false
       }
     ];
-    const { data: counterpartRow } = await supabase
+    const { data: counterpartRows } = await supabase
       .from('conversations')
       .select('*')
       .eq('profile_id', conversationRow.participant_id)
       .eq('participant_id', senderId)
-      .eq('related_item_id', conversationRow.related_item_id)
-      .maybeSingle();
+      .order('id');
+    const counterpartRow = counterpartRows?.[0];
     if (counterpartRow) {
       messageRows.push({
         id: `msg_${crypto.randomUUID().slice(0, 8)}`,

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Conversation } from '../types';
-import { Send, Check, CheckCheck } from 'lucide-react';
+import { Send, Check, CheckCheck, Package2 } from 'lucide-react';
 
 interface MessagesProps {
   currentUserId: string;
@@ -13,6 +13,13 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
   const [activeConvId, setActiveConvId] = useState<string>(activeConversationId ?? conversations[0]?.id ?? '');
   const [inputText, setInputText] = useState('');
   const activeConversation = conversations.find(c => c.id === activeConvId) ?? conversations[0];
+
+  const formatRentalStatus = (status?: Conversation['contextRentalStatus']) => {
+    if (!status) {
+      return null;
+    }
+    return status.replace(/_/g, ' ');
+  };
 
   useEffect(() => {
     if (!activeConvId && conversations[0]?.id) {
@@ -40,7 +47,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
       <div className="w-full md:w-80 border-r border-gray-200 flex flex-col h-full">
         <div className="p-4 border-b border-gray-100">
           <h1 className="text-xl font-bold text-gray-900 mb-4">Inbox</h1>
-          <p className="text-sm text-gray-500">Conversations are scoped to your account and listing context.</p>
+          <p className="text-sm text-gray-500">Each owner appears once, while booking context updates inside the thread.</p>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -66,11 +73,18 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
                 <p className={`text-xs truncate ${conv.unreadCount > 0 ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>
                    {conv.messages[conv.messages.length - 1]?.senderId === currentUserId && 'You: '}{conv.lastMessage}
                 </p>
-                {conv.relatedItemTitle && (
-                   <span className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-500 font-medium">
-                      {conv.relatedItemTitle}
-                   </span>
-                )}
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {conv.contextListingTitle && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-500 font-medium">
+                      {conv.contextListingTitle}
+                    </span>
+                  )}
+                  {conv.contextRentalStatus && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-[10px] text-blue-700 font-medium capitalize">
+                      {formatRentalStatus(conv.contextRentalStatus)}
+                    </span>
+                  )}
+                </div>
               </div>
             </button>
           ))}
@@ -88,12 +102,48 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
                 <h2 className="text-sm font-bold text-gray-900">{activeConversation.participantName}</h2>
                 <div className="flex items-center space-x-2">
                    <span className="text-xs text-gray-500">{activeConversation.participantRole}</span>
-                   <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                   <span className="text-xs text-verent-green font-medium">Online</span>
+                   {activeConversation.contextListingTitle && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                      <span className="text-xs text-gray-500 truncate">{activeConversation.contextListingTitle}</span>
+                    </>
+                   )}
                 </div>
               </div>
             </div>
           </div>
+
+          {(activeConversation.contextListingTitle || activeConversation.contextRentalStatus) && (
+            <div className="border-b border-gray-200 bg-white px-6 py-4">
+              <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                {activeConversation.contextListingThumbnail ? (
+                  <img
+                    src={activeConversation.contextListingThumbnail}
+                    alt={activeConversation.contextListingTitle || 'Listing'}
+                    className="h-14 w-14 rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white border border-gray-200">
+                    <Package2 className="w-6 h-6 text-gray-400" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Active Context</p>
+                  <p className="truncate text-sm font-bold text-gray-900">{activeConversation.contextListingTitle || activeConversation.relatedItemTitle}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {activeConversation.contextRentalStatus && (
+                      <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold capitalize text-blue-700">
+                        {formatRentalStatus(activeConversation.contextRentalStatus)}
+                      </span>
+                    )}
+                    {activeConversation.contextRentalId && (
+                      <span className="text-[10px] font-medium text-gray-500">Rental {activeConversation.contextRentalId}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Messages List */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">

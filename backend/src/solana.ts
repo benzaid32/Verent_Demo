@@ -6,6 +6,7 @@ import { deriveStakePositionPda, deriveStakingConfigPda } from '../../shared/pro
 const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 const VRNT_DECIMALS = 1_000_000;
 const REWARD_PRECISION = 1_000_000_000_000n;
+const SECONDS_PER_YEAR = 31_536_000;
 
 function getConnection() {
   return new Connection(env.SOLANA_RPC_URL, 'confirmed');
@@ -92,6 +93,15 @@ function toUiVrntAmount(rawAmount: bigint | number) {
   return normalized / VRNT_DECIMALS;
 }
 
+function calculateEstimatedApy(rewardRatePerSecond: number, totalStaked: number) {
+  if (rewardRatePerSecond <= 0 || totalStaked <= 0) {
+    return 0;
+  }
+
+  const annualRate = (rewardRatePerSecond * SECONDS_PER_YEAR) / totalStaked;
+  return (Math.pow(1 + annualRate / 365, 365) - 1) * 100;
+}
+
 function decodeStakingConfig(data: Buffer) {
   let offset = 8;
   const marketplaceConfig = readPubkey(data, offset); offset += 32;
@@ -163,6 +173,8 @@ export async function getStakingSnapshot(ownerAddress: string, programId?: strin
         claimableVrnt: 0,
         pendingUnstakeVrnt: 0,
         unstakeAvailableAt: undefined,
+        stakingCooldownSeconds: undefined,
+        estimatedApy: 0,
         vrntMint: undefined,
         stakingConfigPda,
         stakePositionPda,
@@ -178,6 +190,8 @@ export async function getStakingSnapshot(ownerAddress: string, programId?: strin
         claimableVrnt: 0,
         pendingUnstakeVrnt: 0,
         unstakeAvailableAt: undefined,
+        stakingCooldownSeconds: stakingConfig.cooldownSeconds,
+        estimatedApy: calculateEstimatedApy(stakingConfig.rewardRatePerSecond, stakingConfig.totalStaked),
         vrntMint: stakingConfig.vrntMint,
         stakingConfigPda,
         stakePositionPda,
@@ -208,6 +222,8 @@ export async function getStakingSnapshot(ownerAddress: string, programId?: strin
       unstakeAvailableAt: position.pendingUnstakeAmount > 0 && position.cooldownEndAt > 0
         ? new Date(position.cooldownEndAt * 1000).toISOString()
         : undefined,
+      stakingCooldownSeconds: stakingConfig.cooldownSeconds,
+      estimatedApy: calculateEstimatedApy(stakingConfig.rewardRatePerSecond, stakingConfig.totalStaked),
       vrntMint: stakingConfig.vrntMint,
       stakingConfigPda,
       stakePositionPda,
@@ -220,6 +236,8 @@ export async function getStakingSnapshot(ownerAddress: string, programId?: strin
       claimableVrnt: 0,
       pendingUnstakeVrnt: 0,
       unstakeAvailableAt: undefined,
+      stakingCooldownSeconds: undefined,
+      estimatedApy: 0,
       vrntMint: undefined,
       stakingConfigPda,
       stakePositionPda,

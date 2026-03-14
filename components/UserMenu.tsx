@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { User, Settings, LogOut, ShieldCheck } from 'lucide-react';
+import { Settings, LogOut, ShieldCheck, ChevronRight } from 'lucide-react';
 import type { User as AppUser } from '../types';
 
 interface UserMenuProps {
@@ -22,16 +22,22 @@ const UserMenu: React.FC<UserMenuProps> = ({ profile, onClose, onLogout, onSetti
             </div>
         </div>
         <div className="p-2">
-            <button className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-left">
-                <User className="w-4 h-4 text-gray-400" />
-                <span>Profile</span>
-            </button>
-            <button 
+            <button
                 onClick={() => { onSettings(); onClose(); }}
-                className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                className="w-full rounded-lg px-3 py-3 text-left transition-colors hover:bg-gray-50"
             >
-                <Settings className="w-4 h-4 text-gray-400" />
-                <span>Settings</span>
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center space-x-3">
+                        <div className="rounded-lg bg-gray-100 p-2">
+                            <Settings className="w-4 h-4 text-gray-500" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-gray-900">Account & Settings</p>
+                            <p className="text-xs text-gray-500">Profile, notifications, wallet info</p>
+                        </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                </div>
             </button>
         </div>
         <div className="border-t border-gray-100 p-2">

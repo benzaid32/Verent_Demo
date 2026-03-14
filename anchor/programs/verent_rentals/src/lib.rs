@@ -1050,13 +1050,13 @@ pub struct CreateRentalEscrow<'info> {
     /// CHECK: listing owner is validated against the listing account
     pub owner: UncheckedAccount<'info>,
     #[account(seeds = [CONFIG_SEED], bump = config.bump)]
-    pub config: Account<'info, MarketplaceConfig>,
+    pub config: Box<Account<'info, MarketplaceConfig>>,
     #[account(
         seeds = [LISTING_SEED, listing.owner.as_ref(), listing.listing_seed_hash.as_ref()],
         bump = listing.bump,
         constraint = listing.owner == owner.key()
     )]
-    pub listing: Account<'info, Listing>,
+    pub listing: Box<Account<'info, Listing>>,
     #[account(
         init,
         payer = renter,
@@ -1064,7 +1064,7 @@ pub struct CreateRentalEscrow<'info> {
         seeds = [RENTAL_SEED, listing.key().as_ref(), renter.key().as_ref(), args.rental_seed_hash.as_ref()],
         bump
     )]
-    pub escrow: Account<'info, RentalEscrow>,
+    pub escrow: Box<Account<'info, RentalEscrow>>,
     #[account(
         init,
         payer = renter,
@@ -1073,7 +1073,7 @@ pub struct CreateRentalEscrow<'info> {
         token::mint = usdc_mint,
         token::authority = escrow
     )]
-    pub payment_vault: Account<'info, TokenAccount>,
+    pub payment_vault: Box<Account<'info, TokenAccount>>,
     #[account(
         init,
         payer = renter,
@@ -1082,9 +1082,9 @@ pub struct CreateRentalEscrow<'info> {
         token::mint = usdc_mint,
         token::authority = escrow
     )]
-    pub collateral_vault: Account<'info, TokenAccount>,
+    pub collateral_vault: Box<Account<'info, TokenAccount>>,
     #[account(address = config.usdc_mint)]
-    pub usdc_mint: Account<'info, Mint>,
+    pub usdc_mint: Box<Account<'info, Mint>>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,

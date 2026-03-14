@@ -1,8 +1,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import { QrCode, Scan, ArrowRight, Clock, CheckCircle2, Plus, ExternalLink } from 'lucide-react';
+import { QrCode, Scan, ArrowRight, Clock, CheckCircle2, Plus, ExternalLink, MessageSquare } from 'lucide-react';
 import AddListingModal from './AddListingModal';
+import TransactionSuccessDialog from './TransactionSuccessDialog';
 import type { CreateListingRequest } from '../shared/contracts';
 import type { Listing, Rental } from '../types';
 
@@ -10,16 +11,23 @@ interface UnifiedDashboardProps {
   initialTab?: 'renting' | 'lending';
   rentingRentals: Rental[];
   lendingRentals: Rental[];
-  onAcceptRental: (rentalId: string) => Promise<void>;
-  onConfirmPickup: (rentalId: string, code: string) => Promise<void>;
-  onCompleteRental: (rentalId: string, code: string) => Promise<void>;
+  onAcceptRental: (rentalId: string) => Promise<Rental>;
+  onConfirmPickup: (rentalId: string, code: string) => Promise<Rental>;
+  onCompleteRental: (rentalId: string, code: string) => Promise<Rental>;
   onCreateListing: (payload: CreateListingRequest) => Promise<Listing>;
+  onMessageOwner: (listingId: string) => Promise<void>;
 }
 
 type RentalModalState =
   | { type: 'pickup_qr' | 'return_qr'; rental: Rental }
   | { type: 'confirm_pickup' | 'confirm_return'; rental: Rental }
   | null;
+
+type RentalSuccessState = {
+  title: string;
+  description: string;
+  rental: Rental;
+} | null;
 
 const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   initialTab = 'renting',
@@ -28,7 +36,8 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   onAcceptRental,
   onConfirmPickup,
   onCompleteRental,
-  onCreateListing
+  onCreateListing,
+  onMessageOwner
 }) => {
   const [activeTab, setActiveTab] = useState<'renting' | 'lending'>(initialTab);
   const [modalState, setModalState] = useState<RentalModalState>(null);
@@ -37,6 +46,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   const [verificationCode, setVerificationCode] = useState('');
   const [actionError, setActionError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successState, setSuccessState] = useState<RentalSuccessState>(null);
 
   const rentals = activeTab === 'renting' ? rentingRentals : lendingRentals;
 
@@ -90,6 +100,10 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
     setIsSubmitting(false);
   };
 
+  const showSuccessState = (title: string, description: string, rental: Rental) => {
+    setSuccessState({ title, description, rental });
+  };
+
   const submitVerification = async () => {
     if (!modalState || (modalState.type !== 'confirm_pickup' && modalState.type !== 'confirm_return')) {
       return;
@@ -103,11 +117,22 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
     setActionError('');
     try {
       if (modalState.type === 'confirm_pickup') {
-        await onConfirmPickup(modalState.rental.id, verificationCode.trim().toUpperCase());
+        const rental = await onConfirmPickup(modalState.rental.id, verificationCode.trim().toUpperCase());
+        closeModal();
+        showSuccessState(
+          'Pickup Confirmed On-Chain',
+          'The handoff has been verified on Solana and this rental is now active with fresh protocol proof.',
+          rental
+        );
       } else {
-        await onCompleteRental(modalState.rental.id, verificationCode.trim().toUpperCase());
+        const rental = await onCompleteRental(modalState.rental.id, verificationCode.trim().toUpperCase());
+        closeModal();
+        showSuccessState(
+          'Return Settled On-Chain',
+          'Return confirmation and escrow settlement were both finalized on Solana for this rental.',
+          rental
+        );
       }
-      closeModal();
     } catch (caughtError) {
       setActionError(caughtError instanceof Error ? caughtError.message : 'Failed to verify rental code.');
       setIsSubmitting(false);
@@ -235,7 +260,16 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                         </div>
 
                         {/* Action Area */}
-                        <div className="flex-shrink-0">
+                        <div className="flex flex-shrink-0 flex-wrap items-center gap-3">
+                            {activeTab === 'renting' && (
+                                <button
+                                    onClick={() => void onMessageOwner(rental.itemId)}
+                                    className="flex items-center space-x-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                                >
+                                    <MessageSquare className="w-4 h-4" />
+                                    <span>Message Owner</span>
+                                </button>
+                            )}
                             {activeTab === 'renting' && rental.status === 'pending_pickup' && (
                                 <button 
                                     onClick={() => setModalState({ type: 'pickup_qr', rental })}
@@ -257,7 +291,12 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             {activeTab === 'lending' && rental.status === 'pending_approval' && (
                                 <button
                                     onClick={async () => {
-                                      await onAcceptRental(rental.id);
+                                      const nextRental = await onAcceptRental(rental.id);
+                                      showSuccessState(
+                                        'Escrow Approved On-Chain',
+                                        'This booking request is now approved on Solana and the renter can move into pickup verification.',
+                                        nextRental
+                                      );
                                     }}
                                     className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
                                 >
@@ -367,6 +406,21 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                 </div>
             </div>
         )}
+
+        <TransactionSuccessDialog
+          isOpen={Boolean(successState)}
+          title={successState?.title || 'Confirmed On-Chain'}
+          description={successState?.description || 'This protocol action has been confirmed on Solana.'}
+          onClose={() => setSuccessState(null)}
+          closeLabel="Back to Dashboard"
+          signature={successState?.rental.confirmedSignature || successState?.rental.transactionHash}
+          programId={successState?.rental.programId}
+          accountLabel="Rental Escrow PDA"
+          accountValue={successState?.rental.rentalEscrowPda}
+          confirmedSlot={successState?.rental.confirmedSlot}
+          cluster={successState?.rental.chainCluster}
+          protocolVersion={successState?.rental.protocolVersion}
+        />
 
         {isAddModalOpen && (
             <AddListingModal 

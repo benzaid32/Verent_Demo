@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Listing, BookingStep, Rental } from '../types';
 import { ShieldCheck, CheckCircle2, Loader2, FileText, Lock, ArrowRight, X, Fingerprint } from 'lucide-react';
+import OnChainProofCard from './OnChainProofCard';
 
 interface BookingModalProps {
   listing: Listing;
@@ -232,6 +233,18 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
                             )}
                         </div>
                     )}
+
+                    <div className="text-left">
+                      <OnChainProofCard
+                        signature={createdRental?.confirmedSignature || createdRental?.transactionHash}
+                        programId={createdRental?.programId}
+                        accountLabel="Rental Escrow PDA"
+                        accountValue={createdRental?.rentalEscrowPda}
+                        confirmedSlot={createdRental?.confirmedSlot}
+                        cluster={createdRental?.chainCluster}
+                        protocolVersion={createdRental?.protocolVersion}
+                      />
+                    </div>
 
                     <button 
                         onClick={onDone}
