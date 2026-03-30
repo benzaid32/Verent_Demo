@@ -166,11 +166,13 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       setDevices(data.devices);
       setError(null);
     } catch (caughtError) {
-      const isAuthError = caughtError instanceof ApiError && (caughtError.status === 401 || caughtError.status === 403);
-      if (isAuthError) {
+      const isUnauthorized = caughtError instanceof ApiError && caughtError.status === 401;
+      if (isUnauthorized) {
         storeToken(null);
         setProfile(null);
         setWallet(null);
+        setError(null);
+        return;
       }
       setError(caughtError instanceof Error ? caughtError.message : 'Failed to load app data');
     } finally {
@@ -180,6 +182,7 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
 
   useEffect(() => {
     if (!getStoredToken()) {
+      setError(null);
       setLoading(false);
       return;
     }
@@ -200,12 +203,14 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
     loading,
     error,
     loginWithPrivy: async (email, role, privyToken, walletAddress) => {
+      setError(null);
       const session = await login({ email, role, privyToken, walletAddress });
       storeToken(session.accessToken);
       await hydrate();
     },
     logout: () => {
       clearSessionToken();
+      setError(null);
       setProfile(null);
       setWallet(null);
       setListings([]);
