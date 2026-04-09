@@ -106,7 +106,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ listing, onClose, o
               </div>
               <h3 className="mb-2 text-2xl font-bold text-gray-900">Listing Updated On-Chain</h3>
               <p className="mx-auto mb-8 max-w-md text-sm text-gray-500">
-                Your latest edit was confirmed on Solana and the proof below now reflects the new listing update transaction.
+                Your latest edit was confirmed on Solana. The transaction details for this update are shown below.
               </p>
               <div className="w-full max-w-xl text-left">
                 <OnChainProofCard

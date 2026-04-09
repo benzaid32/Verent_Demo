@@ -162,11 +162,11 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                   <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Overview</p>
-                      <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">Professional asset profile</h2>
+                      <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">Listing details</h2>
                     </div>
                     <div className="inline-flex w-fit items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600">
                       <Sparkles className="h-3.5 w-3.5 text-verent-green" />
-                      <span>Minimal, investor-ready presentation</span>
+                      <span>Listing summary</span>
                     </div>
                   </div>
 
@@ -186,9 +186,9 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                     <div className="flex items-start gap-3">
                       <Lock className="mt-0.5 h-5 w-5 flex-shrink-0 text-verent-green" />
                       <div>
-                        <h3 className="text-sm font-bold text-gray-900">Escrow-native rental flow</h3>
+                        <h3 className="text-sm font-bold text-gray-900">Rental funds and collateral</h3>
                         <p className="mt-1 text-sm leading-relaxed text-gray-600">
-                          Booking funds and refundable collateral are enforced through the Verent rental program, with every important state transition backed by on-chain proof.
+                          Booking funds and refundable collateral are handled through the Verent rental program, with each rental step recorded on-chain.
                         </p>
                       </div>
                     </div>

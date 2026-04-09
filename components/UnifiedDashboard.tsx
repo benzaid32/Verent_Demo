@@ -90,8 +90,8 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   const workspace = useMemo(() => {
     if (activeTab === 'renting') {
       return {
-        title: 'Renter Workspace',
-        description: 'Track approvals, pickup handoff, active rentals, and returns in one clean flow.',
+        title: 'Renter Dashboard',
+        description: 'Track approvals, pickup, active rentals, and returns.',
         badge: primaryRole === 'renter' ? 'Primary view' : 'Secondary view',
         sectionTitle: 'Your rental timeline',
         sectionDescription: 'Everything you need to do as a renter, from approval to return.',
@@ -124,12 +124,12 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
     }
 
     return {
-      title: 'Lister Workspace',
-      description: 'Review booking demand, approve escrow, coordinate handoff, and keep your inventory moving.',
+      title: 'Lister Dashboard',
+      description: 'Review requests, approve rentals, and manage pickup and return steps.',
       badge: primaryRole === 'owner' ? 'Primary view' : 'Secondary view',
-      sectionTitle: 'Fleet operations',
-      sectionDescription: 'Incoming requests and live rental operations for your listed assets.',
-      emptyTitle: 'No fleet requests yet',
+      sectionTitle: 'Listing activity',
+      sectionDescription: 'Incoming requests and active rentals for your listed assets.',
+      emptyTitle: 'No requests yet',
       emptyDescription: 'When renters request one of your assets, approvals and pickup or return verification steps will appear here.',
       statCards: [
         {
@@ -190,7 +190,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
         closeModal();
         showSuccessState(
           'Pickup Confirmed On-Chain',
-          'The handoff has been verified on Solana and this rental is now active with fresh protocol proof.',
+          'The pickup was confirmed on Solana and this rental is now active.',
           rental
         );
       } else {
@@ -216,7 +216,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
             <div className="max-w-2xl">
                 <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
                   <LayoutDashboard className="w-3.5 h-3.5 text-verent-green" />
-                  <span>Command Center</span>
+                  <span>Dashboard</span>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{workspace.title}</h1>
@@ -232,7 +232,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:justify-end">
                 {isRoleLocked ? (
                   <div className="inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 sm:w-auto">
-                    {primaryRole === 'owner' ? 'Lister workspace' : 'Renter workspace'}
+                    {primaryRole === 'owner' ? 'Lister dashboard' : 'Renter dashboard'}
                   </div>
                 ) : (
                   <div className="inline-flex w-full rounded-xl bg-gray-100 p-1 sm:w-auto">
@@ -265,7 +265,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
 
           <div className="mt-5 flex flex-wrap gap-2">
             <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-              {activeTab === 'renting' ? 'Approvals, pickup, and return workflow' : 'Listing performance and fleet operations'}
+              {activeTab === 'renting' ? 'Approvals, pickup, and return steps' : 'Listings, requests, and rental activity'}
             </span>
             <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
               {activeTab === 'renting' ? `${rentingRentals.length} renter records` : `${lendingRentals.length} lister records`}

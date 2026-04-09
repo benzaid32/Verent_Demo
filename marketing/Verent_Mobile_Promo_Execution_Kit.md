@@ -210,8 +210,8 @@ Create a single Canva project named:
 - Accent color: Verent green
 - Secondary neutral: gray scale
 - Font pairing:
-  - Headline: Manrope Bold (or Sora Bold)
-  - Body/captions: Inter Medium
+  - Headline: Montserrat Bold
+  - Body/captions: Open Sans
 - Caption size:
   - Headline: 58-72
   - Body: 34-44

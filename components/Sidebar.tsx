@@ -19,7 +19,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, walletBalance = 0, unreadMessagesCount = 0, userRole, isOpen, onClose }) => {
   const navItems = userRole === 'owner'
     ? [
-        { id: 'dashboard', icon: LayoutDashboard, label: 'Command Center' },
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { id: 'listings', icon: List, label: 'My Listings' },
         { id: 'messages', icon: MessageSquare, label: 'Inbox' },
         { id: 'wallet', icon: Wallet, label: 'Wallet' },

@@ -9,8 +9,8 @@ Use this checklist once, then duplicate the project for each video cut.
 - Add guides: keep all text inside center safe area
 
 ## Brand Layer
-- Headline font: Manrope Bold (fallback Sora Bold)
-- Body font: Inter Medium
+- Headline font: Montserrat Bold (fallback Poppins Bold)
+- Body font: Open Sans (fallback Arial)
 - Color set:
   - Primary dark: #0A0A0A
   - Primary light: #FFFFFF

@@ -52,7 +52,7 @@ const TransactionSuccessDialog: React.FC<TransactionSuccessDialogProps> = ({
           <div className="rounded-2xl border border-green-100 bg-green-50/70 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-green-700">Status</p>
             <p className="mt-2 text-sm font-medium text-green-900">Transaction confirmed successfully.</p>
-            <p className="mt-1 text-xs leading-5 text-green-700">Proof details below are stored for verification and easy sharing.</p>
+            <p className="mt-1 text-xs leading-5 text-green-700">Transaction details are shown below for verification.</p>
           </div>
           <OnChainProofCard
             signature={signature}

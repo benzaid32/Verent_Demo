@@ -303,7 +303,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                     <div>
                         <span className="text-sm text-gray-400 font-medium uppercase tracking-wider flex items-center space-x-2">
                             <Wallet className="w-4 h-4" />
-                            <span>Wallet Snapshot</span>
+                            <span>Wallet</span>
                             {refreshing && <Loader2 className="w-3 h-3 animate-spin" />}
                         </span>
                         <div className="mt-2 flex items-baseline space-x-2">
@@ -339,7 +339,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
         <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-1">
              <div>
                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Gas Tank</h3>
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">SOL Balance</h3>
                     <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Solana</span>
                  </div>
                  
@@ -733,7 +733,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
       <TransactionSuccessDialog
         isOpen={Boolean(withdrawProof)}
         title="Withdrawal Confirmed On-Chain"
-        description="This transfer has been confirmed on Solana devnet and the signature below is the proof persisted for your wallet activity."
+        description="This transfer was confirmed on Solana devnet. The signature below is saved for this wallet transaction."
         onClose={() => {
           setWithdrawProof(null);
           void onRefresh();
