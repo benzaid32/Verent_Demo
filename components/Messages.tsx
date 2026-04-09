@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Conversation } from '../types';
-import { Send, Check, CheckCheck, Package2 } from 'lucide-react';
+import { Send, Check, CheckCheck, Package2, ChevronLeft } from 'lucide-react';
 
 interface MessagesProps {
   currentUserId: string;
@@ -12,6 +12,7 @@ interface MessagesProps {
 const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activeConversationId, onSendMessage }) => {
   const [activeConvId, setActiveConvId] = useState<string>(activeConversationId ?? conversations[0]?.id ?? '');
   const [inputText, setInputText] = useState('');
+  const [isMobileThreadOpen, setIsMobileThreadOpen] = useState(Boolean(activeConversationId));
   const activeConversation = conversations.find(c => c.id === activeConvId) ?? conversations[0];
 
   const formatRentalStatus = (status?: Conversation['contextRentalStatus']) => {
@@ -30,8 +31,15 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
   useEffect(() => {
     if (activeConversationId) {
       setActiveConvId(activeConversationId);
+      setIsMobileThreadOpen(true);
     }
   }, [activeConversationId]);
+
+  useEffect(() => {
+    if (!activeConversation) {
+      setIsMobileThreadOpen(false);
+    }
+  }, [activeConversation]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,10 +49,10 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex bg-white overflow-hidden animate-in fade-in duration-500">
+    <div className="flex h-full min-h-0 bg-white overflow-hidden animate-in fade-in duration-500">
       
       {/* LEFT SIDEBAR - Conversation List */}
-      <div className="w-full md:w-80 border-r border-gray-200 flex flex-col h-full">
+      <div className={`${isMobileThreadOpen ? 'hidden md:flex' : 'flex'} h-full w-full flex-col border-r border-gray-200 md:w-80`}>
         <div className="p-4 border-b border-gray-100">
           <h1 className="text-xl font-bold text-gray-900 mb-4">Inbox</h1>
           <p className="text-sm text-gray-500">Each owner appears once, while booking context updates inside the thread.</p>
@@ -54,7 +62,10 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
           {conversations.map((conv) => (
             <button
               key={conv.id}
-              onClick={() => setActiveConvId(conv.id)}
+              onClick={() => {
+                setActiveConvId(conv.id);
+                setIsMobileThreadOpen(true);
+              }}
               className={`w-full text-left p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors flex items-start space-x-3 ${activeConvId === conv.id ? 'bg-gray-50 border-l-4 border-l-verent-green' : 'border-l-4 border-l-transparent'}`}
             >
               <div className="relative">
@@ -93,19 +104,27 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
 
       {/* MAIN CHAT AREA */}
       {activeConversation ? (
-        <div className="flex-1 flex flex-col h-full bg-[#FAFAFA]">
+        <div className={`${isMobileThreadOpen ? 'flex' : 'hidden md:flex'} min-h-0 flex-1 flex-col bg-[#FAFAFA]`}>
           {/* Chat Header */}
-          <div className="px-6 py-4 bg-white border-b border-gray-200 flex justify-between items-center shadow-sm z-10">
-            <div className="flex items-center space-x-3">
+          <div className="px-4 py-4 sm:px-6 bg-white border-b border-gray-200 flex justify-between items-center shadow-sm z-10">
+            <div className="flex min-w-0 items-center space-x-3">
+              <button
+                type="button"
+                onClick={() => setIsMobileThreadOpen(false)}
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 transition-colors hover:bg-gray-50 md:hidden"
+                aria-label="Back to conversations"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
               <img src={activeConversation.participantAvatar} alt="" className="w-10 h-10 rounded-full object-cover" />
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-sm font-bold text-gray-900">{activeConversation.participantName}</h2>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 min-w-0">
                    <span className="text-xs text-gray-500">{activeConversation.participantRole}</span>
                    {activeConversation.contextListingTitle && (
                     <>
                       <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                      <span className="text-xs text-gray-500 truncate">{activeConversation.contextListingTitle}</span>
+                      <span className="truncate text-xs text-gray-500">{activeConversation.contextListingTitle}</span>
                     </>
                    )}
                 </div>
@@ -114,8 +133,8 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
           </div>
 
           {(activeConversation.contextListingTitle || activeConversation.contextRentalStatus) && (
-            <div className="border-b border-gray-200 bg-white px-6 py-4">
-              <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <div className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
+              <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:gap-4">
                 {activeConversation.contextListingThumbnail ? (
                   <img
                     src={activeConversation.contextListingThumbnail}
@@ -146,12 +165,12 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
           )}
 
           {/* Messages List */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 space-y-5 sm:p-6 sm:space-y-6">
              {activeConversation.messages.map((msg) => {
                const isMe = msg.senderId === currentUserId;
                return (
                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[70%] ${isMe ? 'order-1' : 'order-2'}`}>
+                    <div className={`max-w-[85%] sm:max-w-[70%] ${isMe ? 'order-1' : 'order-2'}`}>
                        <div className={`px-4 py-3 rounded-2xl text-sm shadow-sm ${
                          isMe 
                          ? 'bg-black text-white rounded-br-sm' 
@@ -171,7 +190,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
 
           {/* Input Area */}
           <div className="p-4 bg-white border-t border-gray-200">
-            <form onSubmit={handleSend} className="flex items-center space-x-3 bg-gray-50 rounded-xl p-2 border border-gray-200 focus-within:ring-2 focus-within:ring-verent-green/20 focus-within:border-verent-green transition-all">
+            <form onSubmit={handleSend} className="flex items-center space-x-2 sm:space-x-3 bg-gray-50 rounded-xl p-2 border border-gray-200 focus-within:ring-2 focus-within:ring-verent-green/20 focus-within:border-verent-green transition-all">
                <input 
                   type="text" 
                   value={inputText}
@@ -190,7 +209,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <div className="hidden flex-1 items-center justify-center bg-gray-50 md:flex">
            <div className="text-center">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                  <Send className="w-8 h-8 text-gray-300" />

@@ -15,7 +15,7 @@ interface OnboardingProps {
 type Step = 'role' | 'email' | 'verify';
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
-  const { ready, getAccessToken, user } = usePrivy();
+  const { ready, getAccessToken, user, logout: privyLogout } = usePrivy();
   const { sendCode, loginWithCode } = useLoginWithEmail();
   const { createWallet } = useCreateWallet();
   const { wallets } = useWallets();
@@ -56,7 +56,33 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
     setIsLoading(true);
     setLocalError(null);
     try {
-      await sendCode({ email: email.trim().toLowerCase() });
+      if (!selectedRole) {
+        throw new Error('Please choose whether you are logging in as a renter or lister first.');
+      }
+
+      const normalizedEmail = normalizeEmail(email);
+      setEmail(normalizedEmail);
+      const activePrivyEmail = normalizeEmail(getEmailFromPrivyUser(user));
+
+      if (activePrivyEmail) {
+        if (activePrivyEmail === normalizedEmail) {
+          await completeLogin(normalizedEmail, selectedRole, user, {
+            getAccessToken,
+            createWallet,
+            latestUserRef,
+            latestWalletsRef,
+            onComplete
+          });
+          return;
+        }
+
+        await privyLogout();
+        latestUserRef.current = null;
+        latestWalletsRef.current = [];
+        await sleep(250);
+      }
+
+      await sendCode({ email: normalizedEmail });
       setVerificationCode('');
       setStep('verify');
     } catch (caughtError) {
@@ -77,40 +103,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
 
     try {
       const loginResult = await loginWithCode({ code: verificationCode.trim() });
-      const privyToken = await getAccessToken();
-      if (!privyToken) {
-        throw new Error('Privy did not return an access token.');
-      }
-      const resultUser = getUserFromLoginResult(loginResult);
-      let resolvedWalletAddress =
-        getWalletAddressFromPrivyUser(resultUser) ??
-        getWalletAddressFromPrivyUser(user) ??
-        getWalletAddressFromWallets(wallets);
-
-      if (!resolvedWalletAddress) {
-        resolvedWalletAddress = await waitForEmbeddedWalletAddress(resultUser, latestUserRef, latestWalletsRef);
-      }
-
-      if (!resolvedWalletAddress) {
-        try {
-          const createdWallet = await createWallet();
-          resolvedWalletAddress =
-            getWalletAddressFromCreateWalletResult(createdWallet) ??
-            await waitForEmbeddedWalletAddress(resultUser, latestUserRef, latestWalletsRef);
-        } catch (caughtWalletError) {
-          const message = caughtWalletError instanceof Error ? caughtWalletError.message : '';
-          if (!message.toLowerCase().includes('already has an embedded wallet')) {
-            throw caughtWalletError;
-          }
-          resolvedWalletAddress = await waitForEmbeddedWalletAddress(resultUser, latestUserRef, latestWalletsRef);
-        }
-      }
-
-      if (!resolvedWalletAddress) {
-        throw new Error('Privy wallet address is not available yet. Please try again in a moment.');
-      }
-
-      await onComplete(email, selectedRole, privyToken, resolvedWalletAddress);
+      await completeLogin(email, selectedRole, getUserFromLoginResult(loginResult), {
+        getAccessToken,
+        createWallet,
+        latestUserRef,
+        latestWalletsRef,
+        onComplete
+      });
     } catch (caughtError) {
       setLocalError(caughtError instanceof Error ? caughtError.message : 'Failed to verify your email.');
     } finally {
@@ -127,7 +126,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
     setIsLoading(true);
     setLocalError(null);
     try {
-      await sendCode({ email: email.trim().toLowerCase() });
+      const normalizedEmail = normalizeEmail(email);
+      setEmail(normalizedEmail);
+      const activePrivyEmail = normalizeEmail(getEmailFromPrivyUser(user));
+      if (activePrivyEmail && activePrivyEmail !== normalizedEmail) {
+        await privyLogout();
+        latestUserRef.current = null;
+        latestWalletsRef.current = [];
+        await sleep(250);
+      }
+
+      await sendCode({ email: normalizedEmail });
       setVerificationCode('');
       setStep('verify');
     } catch (caughtError) {
@@ -200,8 +209,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
       </div>
 
       {/* Right Side: Interface */}
-      <div className="w-full lg:w-1/2 bg-white flex flex-col relative">
-        <div className="absolute top-8 right-8">
+      <div className="relative flex w-full flex-col bg-white lg:w-1/2">
+        <div className="absolute right-4 top-4 sm:right-8 sm:top-8">
             <div className="text-xs font-medium text-gray-400">
                 Step {step === 'role' ? '1' : step === 'email' ? '2' : '3'} of 3
             </div>
@@ -210,14 +219,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
         {step !== 'role' && (
              <button 
                 onClick={() => setStep(step === 'verify' ? 'email' : 'role')}
-                className="absolute top-8 left-8 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors"
+                className="absolute left-4 top-4 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-900 sm:left-8 sm:top-8"
             >
                 <ChevronLeft className="w-5 h-5" />
             </button>
         )}
 
-        <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
-            <div className="w-full max-w-md space-y-8">
+        <div className="flex flex-1 items-center justify-center p-4 pt-16 sm:p-8 sm:pt-20 lg:p-12">
+            <div className="w-full max-w-md space-y-6 sm:space-y-8">
                 
                 {/* STEP 1: ROLE SELECTION */}
                 {step === 'role' && (
@@ -230,7 +239,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
                         <div className="grid gap-4">
                             <button 
                                 onClick={() => handleRoleSelect('renter')}
-                                className="group relative flex items-start p-6 rounded-2xl border border-gray-200 hover:border-verent-green hover:ring-1 hover:ring-verent-green transition-all duration-300 text-left hover:shadow-xl hover:shadow-verent-green/5 hover:-translate-y-1 bg-white"
+                                className="group relative flex items-start rounded-2xl border border-gray-200 bg-white p-5 text-left transition-all duration-300 hover:-translate-y-1 hover:border-verent-green hover:ring-1 hover:ring-verent-green hover:shadow-xl hover:shadow-verent-green/5 sm:p-6"
                             >
                                 <div className="bg-gray-50 p-3 rounded-xl group-hover:bg-verent-green/10 transition-colors mr-5">
                                     <Search className="w-6 h-6 text-gray-600 group-hover:text-verent-green" />
@@ -248,7 +257,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
 
                             <button 
                                 onClick={() => handleRoleSelect('owner')}
-                                className="group relative flex items-start p-6 rounded-2xl border border-gray-200 hover:border-verent-green hover:ring-1 hover:ring-verent-green transition-all duration-300 text-left hover:shadow-xl hover:shadow-verent-green/5 hover:-translate-y-1 bg-white"
+                                className="group relative flex items-start rounded-2xl border border-gray-200 bg-white p-5 text-left transition-all duration-300 hover:-translate-y-1 hover:border-verent-green hover:ring-1 hover:ring-verent-green hover:shadow-xl hover:shadow-verent-green/5 sm:p-6"
                             >
                                 <div className="bg-gray-50 p-3 rounded-xl group-hover:bg-verent-green/10 transition-colors mr-5">
                                     <Server className="w-6 h-6 text-gray-600 group-hover:text-verent-green" />
@@ -334,7 +343,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
                                     autoFocus
                                     value={verificationCode}
                                     onChange={(e) => setVerificationCode(e.target.value)}
-                                    className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-verent-green/20 focus:border-verent-green outline-none transition-all text-center text-3xl tracking-[0.5em] font-mono text-gray-900 placeholder-gray-300"
+                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-center font-mono text-2xl tracking-[0.35em] text-gray-900 outline-none transition-all placeholder-gray-300 focus:border-verent-green focus:bg-white focus:ring-2 focus:ring-verent-green/20 sm:text-3xl sm:tracking-[0.5em]"
                                     placeholder="000000"
                                 />
                             </div>
@@ -421,6 +430,46 @@ function getWalletAddressFromPrivyUser(user: unknown): string | undefined {
   return undefined;
 }
 
+function getEmailFromPrivyUser(user: unknown): string | undefined {
+  if (!user || typeof user !== 'object') {
+    return undefined;
+  }
+
+  const candidate = user as Record<string, unknown>;
+  if (typeof candidate.email === 'string' && candidate.email.trim()) {
+    return candidate.email.trim();
+  }
+
+  const linkedAccountsRaw =
+    Array.isArray(candidate.linkedAccounts)
+      ? candidate.linkedAccounts
+      : Array.isArray(candidate.linked_accounts)
+        ? candidate.linked_accounts
+        : [];
+
+  for (const account of linkedAccountsRaw) {
+    if (!account || typeof account !== 'object') {
+      continue;
+    }
+    const linked = account as Record<string, unknown>;
+    const accountType = typeof linked.type === 'string' ? linked.type.toLowerCase() : '';
+    if (accountType !== 'email') {
+      continue;
+    }
+    const address =
+      typeof linked.address === 'string'
+        ? linked.address
+        : typeof linked.email === 'string'
+          ? linked.email
+          : undefined;
+    if (address?.trim()) {
+      return address.trim();
+    }
+  }
+
+  return undefined;
+}
+
 function getUserFromLoginResult(loginResult: unknown): unknown {
   if (!loginResult || typeof loginResult !== 'object') {
     return undefined;
@@ -489,6 +538,59 @@ async function waitForEmbeddedWalletAddress(
   }
 
   return undefined;
+}
+
+function normalizeEmail(value: string | undefined) {
+  return value?.trim().toLowerCase() ?? '';
+}
+
+async function completeLogin(
+  email: string,
+  role: UserRole,
+  loginUser: unknown,
+  options: {
+    getAccessToken: () => Promise<string | null>;
+    createWallet: () => Promise<unknown>;
+    latestUserRef: React.MutableRefObject<unknown>;
+    latestWalletsRef: React.MutableRefObject<unknown>;
+    onComplete: (email: string, role: UserRole, privyToken: string, walletAddress?: string) => Promise<void>;
+  }
+) {
+  const normalizedEmail = normalizeEmail(email);
+  const privyToken = await options.getAccessToken();
+  if (!privyToken) {
+    throw new Error('Privy did not return an access token.');
+  }
+
+  let resolvedWalletAddress =
+    getWalletAddressFromPrivyUser(loginUser) ??
+    getWalletAddressFromPrivyUser(options.latestUserRef.current) ??
+    getWalletAddressFromWallets(options.latestWalletsRef.current);
+
+  if (!resolvedWalletAddress) {
+    resolvedWalletAddress = await waitForEmbeddedWalletAddress(loginUser, options.latestUserRef, options.latestWalletsRef);
+  }
+
+  if (!resolvedWalletAddress) {
+    try {
+      const createdWallet = await options.createWallet();
+      resolvedWalletAddress =
+        getWalletAddressFromCreateWalletResult(createdWallet) ??
+        await waitForEmbeddedWalletAddress(loginUser, options.latestUserRef, options.latestWalletsRef);
+    } catch (caughtWalletError) {
+      const message = caughtWalletError instanceof Error ? caughtWalletError.message : '';
+      if (!message.toLowerCase().includes('already has an embedded wallet')) {
+        throw caughtWalletError;
+      }
+      resolvedWalletAddress = await waitForEmbeddedWalletAddress(loginUser, options.latestUserRef, options.latestWalletsRef);
+    }
+  }
+
+  if (!resolvedWalletAddress) {
+    throw new Error('Privy wallet address is not available yet. Please try again in a moment.');
+  }
+
+  await options.onComplete(normalizedEmail, role, privyToken, resolvedWalletAddress);
 }
 
 function sleep(ms: number) {

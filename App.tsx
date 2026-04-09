@@ -167,9 +167,10 @@ const App: React.FC = () => {
         onClose={() => setIsMobileMenuOpen(false)}
       />
       
-      <main className="flex-1 flex flex-col max-w-full h-screen overflow-hidden relative">
+      <main className="flex-1 flex min-h-screen flex-col max-w-full overflow-hidden relative">
         {/* Header */}
-        <header className="h-16 bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 sm:px-8 flex items-center justify-between flex-shrink-0 z-30 sticky top-0">
+        <header className="sticky top-0 z-20 h-16 flex-shrink-0 border-b border-gray-200 bg-white/80 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
+          <div className="flex h-full items-center justify-between gap-3">
           <div className="flex items-center space-x-4">
             <button 
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -231,10 +232,11 @@ const App: React.FC = () => {
                 )}
             </div>
           </div>
+          </div>
         </header>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto scroll-smooth relative">
+        <div className="relative flex-1 overflow-y-auto scroll-smooth pb-24 sm:pb-28">
             {currentView === 'explore' && (
                 <Explore listings={listings} onSelectListing={handleSelectListing} />
             )}

@@ -140,24 +140,24 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-8 animate-in fade-in duration-500 relative">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="relative mx-auto max-w-5xl space-y-6 px-4 py-5 animate-in fade-in duration-500 sm:px-6 sm:py-6 lg:space-y-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Command Center</h1>
                 <p className="text-gray-500 text-sm mt-1">Manage your infrastructure rentals and fleet status.</p>
             </div>
             
-            <div className="flex items-center space-x-4">
-                <div className="bg-gray-100 p-1 rounded-lg inline-flex">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:justify-end">
+                <div className="inline-flex w-full rounded-lg bg-gray-100 p-1 sm:w-auto">
                     <button 
                         onClick={() => setActiveTab('renting')}
-                        className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'renting' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'renting' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         Renting
                     </button>
                     <button 
                         onClick={() => setActiveTab('lending')}
-                        className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'lending' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'lending' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         Lending
                     </button>
@@ -177,7 +177,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
         </div>
 
         {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-start mb-4">
                     <div className="p-2 bg-blue-50 rounded-lg">
@@ -212,7 +212,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
 
         {/* List Section */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/50 px-4 py-4 sm:px-6">
                 <h3 className="font-semibold text-gray-900">{activeTab === 'renting' ? 'My Active Rentals' : 'Fleet Requests'}</h3>
                 
                 {/* Mobile Add Button */}
@@ -229,17 +229,17 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
             
             <div className="divide-y divide-gray-50">
                 {rentals.map((rental) => (
-                    <div key={rental.id} className="p-6 hover:bg-gray-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center space-x-4">
+                    <div key={rental.id} className="flex flex-col gap-4 p-4 transition-colors hover:bg-gray-50 sm:p-6 md:flex-row md:items-center md:justify-between">
+                        <div className="flex min-w-0 items-start space-x-4">
                             <img src={rental.thumbnail} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-200" />
-                            <div>
-                                <h4 className="font-bold text-gray-900">{rental.itemTitle}</h4>
-                                <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
+                            <div className="min-w-0 flex-1">
+                                <h4 className="truncate font-bold text-gray-900">{rental.itemTitle}</h4>
+                                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                                     <span>{rental.startDate}</span>
                                     <ArrowRight className="w-3 h-3" />
                                     <span>{rental.endDate}</span>
                                 </div>
-                                <div className="mt-2 flex items-center space-x-2">
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
                                         rental.status === 'active' ? 'bg-green-100 text-green-700' :
                                         rental.status === 'pending_pickup' ? 'bg-orange-100 text-orange-700' :
@@ -260,11 +260,11 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                         </div>
 
                         {/* Action Area */}
-                        <div className="flex flex-shrink-0 flex-wrap items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3 md:flex-shrink-0 md:justify-end">
                             {activeTab === 'renting' && (
                                 <button
                                     onClick={() => void onMessageOwner(rental.itemId)}
-                                    className="flex items-center space-x-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                                    className="flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900 sm:w-auto"
                                 >
                                     <MessageSquare className="w-4 h-4" />
                                     <span>Message Owner</span>
@@ -273,7 +273,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             {activeTab === 'renting' && rental.status === 'pending_pickup' && (
                                 <button 
                                     onClick={() => setModalState({ type: 'pickup_qr', rental })}
-                                    className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                                    className="flex w-full items-center justify-center space-x-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto"
                                 >
                                     <QrCode className="w-4 h-4" />
                                     <span>Show Pickup QR</span>
@@ -282,7 +282,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             {activeTab === 'renting' && rental.status === 'active' && (
                                 <button 
                                     onClick={() => setModalState({ type: 'return_qr', rental })}
-                                    className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                                    className="flex w-full items-center justify-center space-x-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto"
                                 >
                                     <QrCode className="w-4 h-4" />
                                     <span>Show Return QR</span>
@@ -298,7 +298,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                                         nextRental
                                       );
                                     }}
-                                    className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                                    className="flex w-full items-center justify-center space-x-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto"
                                 >
                                     <CheckCircle2 className="w-4 h-4" />
                                     <span>Approve Escrow</span>
@@ -307,7 +307,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             {activeTab === 'lending' && rental.status === 'pending_pickup' && (
                                 <button
                                   onClick={() => setModalState({ type: 'confirm_pickup', rental })}
-                                  className="flex items-center space-x-2 bg-verent-green text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
+                                  className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 sm:w-auto"
                                 >
                                     <Scan className="w-4 h-4" />
                                     <span>Confirm Pickup</span>
@@ -316,7 +316,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             {activeTab === 'lending' && rental.status === 'active' && (
                                 <button
                                   onClick={() => setModalState({ type: 'confirm_return', rental })}
-                                  className="flex items-center space-x-2 bg-verent-green text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
+                                  className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 sm:w-auto"
                                 >
                                     <Scan className="w-4 h-4" />
                                     <span>Scan Return QR</span>
@@ -337,7 +337,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
         {/* QR Modal Overlay */}
         {modalState && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
-                <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center" onClick={e => e.stopPropagation()}>
+                <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center sm:p-8" onClick={e => e.stopPropagation()}>
                     {modalState.type === 'pickup_qr' || modalState.type === 'return_qr' ? (
                       <>
                         <h3 className="text-lg font-bold text-gray-900 mb-2">
@@ -348,11 +348,11 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             ? 'Show this live rental QR to the owner during handoff.'
                             : 'Show this return QR to the owner when returning the asset.'}
                         </p>
-                        <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 inline-block mb-4">
+                        <div className="mb-4 inline-block rounded-xl border-2 border-dashed border-gray-200 bg-white p-3 sm:p-4">
                           {qrDataUrl ? (
-                            <img src={qrDataUrl} alt="Rental verification QR" className="w-48 h-48" />
+                            <img src={qrDataUrl} alt="Rental verification QR" className="h-40 w-40 sm:h-48 sm:w-48" />
                           ) : (
-                            <QrCode className="w-48 h-48 text-gray-900" />
+                            <QrCode className="h-40 w-40 text-gray-900 sm:h-48 sm:w-48" />
                           )}
                         </div>
                         <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-left">

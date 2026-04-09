@@ -89,11 +89,11 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm animate-in fade-in duration-300 sm:p-4">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-bold text-gray-900">List New Equipment</h2>
             <p className="text-xs text-gray-500">Add hardware to the Verent network</p>
@@ -106,7 +106,7 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             
             {/* SUCCESS STATE */}
             {step === 'success' && (
@@ -162,7 +162,7 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                 <div className="space-y-8">
                     
                     {/* Step Progress */}
-                    <div className="flex items-center space-x-4 mb-8">
+                    <div className="mb-8 flex items-center space-x-3 sm:space-x-4">
                         <div className={`h-1 flex-1 rounded-full transition-colors ${step === 'details' || step === 'upload' || step === 'pricing' ? 'bg-verent-green' : 'bg-gray-100'}`}></div>
                         <div className={`h-1 flex-1 rounded-full transition-colors ${step === 'upload' || step === 'pricing' ? 'bg-verent-green' : 'bg-gray-100'}`}></div>
                         <div className={`h-1 flex-1 rounded-full transition-colors ${step === 'pricing' ? 'bg-verent-green' : 'bg-gray-100'}`}></div>
@@ -183,7 +183,7 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Category</label>
                                         <div className="relative">
@@ -271,7 +271,7 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                             />
                             <div
                               onClick={() => fileInputRef.current?.click()}
-                              className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center hover:bg-gray-50 hover:border-verent-green/50 transition-all cursor-pointer group"
+                              className="group cursor-pointer rounded-2xl border-2 border-dashed border-gray-200 p-6 text-center transition-all hover:border-verent-green/50 hover:bg-gray-50 sm:p-12"
                             >
                                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-verent-green/10 transition-colors">
                                     <Camera className="w-8 h-8 text-gray-400 group-hover:text-verent-green transition-colors" />
@@ -342,14 +342,14 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
         
         {/* Footer Actions */}
         {(step === 'details' || step === 'upload' || step === 'pricing') && (
-            <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-between">
+            <div className="flex flex-col-reverse gap-3 border-t border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <button 
                     onClick={() => {
                         if (step === 'details') onClose();
                         if (step === 'upload') setStep('details');
                         if (step === 'pricing') setStep('upload');
                     }}
-                    className="px-6 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                    className="px-6 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
                 >
                     {step === 'details' ? 'Cancel' : 'Back'}
                 </button>
@@ -361,7 +361,7 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                         if (step === 'pricing') handleSubmit();
                     }}
                     disabled={step === 'details' && !formData.title}
-                    className="bg-black text-white px-8 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    className="flex w-full items-center justify-center space-x-2 rounded-xl bg-black px-8 py-3 text-sm font-bold text-white shadow-lg shadow-gray-200 transition-all hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-2.5"
                 >
                     <span>{step === 'pricing' ? 'Publish Listing' : 'Continue'}</span>
                     <Plus className="w-4 h-4" />

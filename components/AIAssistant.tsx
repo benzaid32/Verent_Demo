@@ -23,7 +23,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ devices }) => {
     return (
       <button
         onClick={() => { setIsOpen(true); if (!analysis) handleAnalyze(); }}
-        className="fixed bottom-6 right-6 bg-gray-900 text-white p-4 rounded-full shadow-lg hover:bg-gray-800 transition-all duration-300 flex items-center space-x-2 border border-gray-700 z-50 group"
+        className="fixed bottom-4 right-4 z-50 flex items-center space-x-2 rounded-full border border-gray-700 bg-gray-900 p-3 text-white shadow-lg transition-all duration-300 hover:bg-gray-800 sm:bottom-6 sm:right-6 sm:p-4 group"
       >
         <Sparkles className="w-5 h-5 text-verent-green" />
         <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap text-sm font-medium">
@@ -34,7 +34,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ devices }) => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-300">
+    <div className="fixed inset-x-3 bottom-3 z-50 flex max-h-[min(75vh,42rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl animate-in slide-in-from-bottom-10 duration-300 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[min(24rem,calc(100vw-2rem))]">
       <div className="p-4 bg-gray-900 flex justify-between items-center border-b border-gray-800">
         <div className="flex items-center space-x-2">
           <Sparkles className="w-4 h-4 text-verent-green" />
@@ -48,7 +48,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ devices }) => {
         </button>
       </div>
 
-      <div className="p-6 bg-white max-h-[400px] overflow-y-auto">
+      <div className="max-h-[min(65vh,25rem)] overflow-y-auto bg-white p-4 sm:p-6">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <Loader2 className="w-8 h-8 text-verent-green animate-spin" />

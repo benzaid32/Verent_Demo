@@ -149,7 +149,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
   const estimatedApyLabel = `${(wallet.estimatedApy ?? 0).toFixed(2)}%`;
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-500 mb-12">
+    <div className="mx-auto mb-12 max-w-6xl space-y-6 px-4 py-5 animate-in fade-in duration-500 sm:px-6 sm:py-6 lg:space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
          <div>
             <div className="flex items-center space-x-2 mb-1">
@@ -164,13 +164,13 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
          </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-black text-white p-6 rounded-2xl relative overflow-hidden shadow-xl">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
+          <div className="relative overflow-hidden rounded-2xl bg-black p-5 text-white shadow-xl sm:p-6">
               <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Wallet VRNT</p>
               <h3 className="text-3xl font-mono font-bold text-white">{wallet.vrntBalance.toLocaleString()}</h3>
               <p className="mt-3 text-xs text-gray-400">Available to stake right now.</p>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+          <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
               <div>
                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Staked VRNT</p>
                    <h3 className="text-4xl font-mono font-bold text-gray-900 mt-2">{wallet.stakedVrntBalance.toLocaleString()}</h3>
@@ -187,7 +187,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
                   </div>
               </div>
           </div>
-          <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between relative overflow-hidden">
+          <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5 shadow-sm sm:p-6">
                <div>
                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Claimable Rewards</p>
                    <h3 className="text-3xl font-mono font-bold text-gray-900 mt-2">{(wallet.claimableVrnt ?? 0).toLocaleString()} VRNT</h3>
@@ -203,7 +203,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
           </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
           {/* Main Action Column */}
           <div className="lg:col-span-2 space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -235,10 +235,10 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 placeholder="0.00"
-                                className="w-full pl-4 pr-24 py-4 bg-gray-50 border border-gray-200 rounded-xl text-2xl font-mono font-bold outline-none focus:ring-2 focus:ring-verent-green/20 focus:border-verent-green transition-all"
+                                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 pl-4 pr-20 text-xl font-mono font-bold outline-none transition-all focus:border-verent-green focus:ring-2 focus:ring-verent-green/20 sm:pr-24 sm:text-2xl"
                               />
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                                  <span className="text-sm font-bold text-gray-400">VRNT</span>
+                              <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center space-x-2 sm:right-4">
+                                  <span className="text-xs font-bold text-gray-400 sm:text-sm">VRNT</span>
                                   <button 
                                     onClick={() => setAmount(activeTab === 'stake' ? wallet.vrntBalance.toString() : wallet.stakedVrntBalance.toString())}
                                     className="text-[10px] font-bold bg-white border border-gray-200 px-2 py-1 rounded hover:bg-gray-50 text-verent-green"
@@ -247,7 +247,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
                                   </button>
                               </div>
                           </div>
-                          <div className="flex justify-between mt-2 text-xs text-gray-500">
+                          <div className="mt-2 flex flex-col gap-1 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
                               <span>Balance: {activeTab === 'stake' ? wallet.vrntBalance.toLocaleString() : wallet.stakedVrntBalance.toLocaleString()} VRNT</span>
                               {activeTab === 'unstake' && <span className="text-orange-500 font-medium">Protocol cooldown: {formatDuration(wallet.stakingCooldownSeconds)}</span>}
                           </div>
@@ -284,22 +284,22 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
                         <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
                       )}
                       {activeTab === 'unstake' && (
-                        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-                          <div className="flex items-center justify-between text-sm">
+                        <div className="mt-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                             <span className="text-gray-500">Protocol cooldown</span>
                             <span className="font-mono font-medium text-gray-900">{formatDuration(wallet.stakingCooldownSeconds)}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
+                          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                             <span className="text-gray-500">Pending unstake</span>
                             <span className="font-mono font-medium text-gray-900">{(wallet.pendingUnstakeVrnt ?? 0).toLocaleString()} VRNT</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
+                          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                             <span className="text-gray-500">Available after</span>
                             <span className="font-medium text-gray-900">
                               {wallet.unstakeAvailableAt ? new Date(wallet.unstakeAvailableAt).toLocaleString() : 'No pending cooldown'}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
+                          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                             <span className="text-gray-500">Time remaining</span>
                             <span className={`font-medium ${cooldownFinished ? 'text-green-700' : 'text-orange-600'}`}>
                               {cooldownRemainingLabel}
@@ -322,7 +322,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
                   </div>
               </div>
 
-              <div className="bg-blue-50 rounded-xl p-6 border border-blue-100 flex items-start space-x-4">
+              <div className="flex items-start space-x-4 rounded-xl border border-blue-100 bg-blue-50 p-5 sm:p-6">
                   <AlertCircle className="w-6 h-6 text-blue-600 flex-shrink-0" />
                   <div>
                       <h4 className="font-bold text-blue-900 text-sm">Live Surface Notes</h4>
@@ -335,7 +335,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
 
           {/* Sidebar Column - Tier Info */}
           <div className="space-y-6">
-               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+               <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Trust Tier Progress</h3>
                    
                    <div className="relative pt-4 mb-8">
@@ -371,7 +371,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
                    </div>
                </div>
 
-               <div className="bg-gray-900 text-white p-6 rounded-2xl border border-gray-800">
+               <div className="rounded-2xl border border-gray-800 bg-gray-900 p-5 text-white sm:p-6">
                    <h3 className="font-bold text-lg mb-2">What changes your tier</h3>
                    <p className="text-sm text-gray-400">
                      Tier progress updates from your persisted staking balance. Reach {nextTierTarget.toLocaleString()} staked VRNT for {nextTierName}.

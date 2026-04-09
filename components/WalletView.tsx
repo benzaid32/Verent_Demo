@@ -278,10 +278,10 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-8 animate-in fade-in duration-500 mb-12">
+    <div className="mx-auto mb-12 max-w-5xl space-y-6 px-4 py-5 animate-in fade-in duration-500 sm:px-6 sm:py-6 lg:space-y-8">
       {/* Header & Balance */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-[#0a0a0a] text-white p-8 rounded-2xl shadow-2xl shadow-black/20 relative overflow-hidden border border-gray-800">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+        <div className="relative overflow-hidden rounded-2xl border border-gray-800 bg-[#0a0a0a] p-5 text-white shadow-2xl shadow-black/20 sm:p-6 lg:col-span-2 lg:p-8">
            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-verent-green/20 to-transparent rounded-bl-full -mr-16 -mt-16 blur-3xl"></div>
             <div className="relative z-10">
                 <div className="flex justify-between items-start">
@@ -301,7 +301,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                     </button>
                 </div>
                 
-                <div className="mt-8 grid grid-cols-3 gap-4">
+                <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4">
                     <div className="bg-white/5 p-3 rounded-lg border border-white/5 backdrop-blur-sm">
                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Liquid USDC</p>
                          <p className="text-lg font-mono font-medium text-white">{wallet.usdcBalance.toLocaleString()} USDC</p>
@@ -321,7 +321,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
             </div>
         </div>
 
-        <div className="lg:col-span-1 bg-white border border-gray-200 p-6 rounded-2xl flex flex-col justify-between shadow-sm">
+        <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-1">
              <div>
                  <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Gas Tank</h3>
@@ -349,7 +349,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
       {/* Main Action Area */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {/* Tabs */}
-        <div className="border-b border-gray-100 flex items-center px-6 pt-2 bg-gray-50/50 overflow-x-auto no-scrollbar">
+        <div className="no-scrollbar flex items-center overflow-x-auto border-b border-gray-100 bg-gray-50/50 px-3 pt-2 sm:px-6">
             {[
                 { id: 'deposit', label: 'Deposit', icon: ArrowDownLeft },
                 { id: 'withdraw', label: 'Withdraw', icon: ArrowUpRight },
@@ -371,7 +371,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
             ))}
         </div>
 
-        <div className="p-8 min-h-[400px]">
+        <div className="min-h-[400px] p-4 sm:p-6 lg:p-8">
             {/* DEPOSIT VIEW */}
             {activeTab === 'deposit' && (
                 <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -380,12 +380,12 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                         <p className="text-sm text-gray-500">Send SOL, USDC, or VRNT to your embedded wallet address.</p>
                     </div>
                     
-                    <div className="bg-white p-6 rounded-2xl border-2 border-dashed border-gray-200 shadow-sm relative group">
+                    <div className="group relative rounded-2xl border-2 border-dashed border-gray-200 bg-white p-4 shadow-sm sm:p-6">
                         <div className="absolute inset-0 bg-verent-green/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none"></div>
                         {depositQrCode ? (
-                          <img src={depositQrCode} alt="Wallet deposit QR code" className="w-48 h-48 rounded-xl" />
+                          <img src={depositQrCode} alt="Wallet deposit QR code" className="h-40 w-40 rounded-xl sm:h-48 sm:w-48" />
                         ) : (
-                          <div className="w-48 h-48 rounded-xl bg-gray-50 flex items-center justify-center text-xs text-gray-500 font-medium text-center px-6">
+                          <div className="flex h-40 w-40 items-center justify-center rounded-xl bg-gray-50 px-6 text-center text-xs font-medium text-gray-500 sm:h-48 sm:w-48">
                             Generating QR code...
                           </div>
                         )}
@@ -440,7 +440,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Asset</label>
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                                     <button 
                                         onClick={() => setWithdrawCurrency('SOL')}
                                         className={`px-4 py-3 rounded-xl border text-sm font-medium flex items-center justify-center space-x-2 transition-all ${withdrawCurrency === 'SOL' ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
@@ -566,17 +566,17 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
 
             {/* HISTORY VIEW */}
             {activeTab === 'history' && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex items-center justify-between mb-6">
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="mb-6 flex items-center justify-between gap-3">
                         <h2 className="text-xl font-bold text-gray-900">History</h2>
                         <button className="text-sm text-gray-500 hover:text-gray-900">Export CSV</button>
                     </div>
 
                     <div className="space-y-2">
                         {transactions.map((tx) => (
-                            <div key={tx.id} className="bg-white border border-gray-200 p-4 rounded-xl hover:bg-gray-50 transition-colors group">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-4">
+                            <div key={tx.id} className="group rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50">
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex items-center space-x-4 min-w-0">
                                         <div className={`p-3 rounded-full ${
                                             tx.type === 'deposit' ? 'bg-green-100 text-green-600' :
                                             tx.type === 'withdraw' ? 'bg-gray-100 text-gray-600' :
@@ -591,16 +591,16 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                                              tx.type === 'claim_rewards' || tx.type === 'claim_yield' ? <Sparkles className="w-5 h-5" /> :
                                              <RefreshCw className="w-5 h-5" />}
                                         </div>
-                                        <div>
+                                        <div className="min-w-0">
                                             <p className="text-sm font-bold text-gray-900 capitalize">{tx.type.replace('_', ' ')}</p>
-                                            <div className="flex items-center space-x-2 text-xs text-gray-500 mt-0.5">
+                                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
                                                 <span>{tx.date}</span>
                                                 <span>•</span>
-                                                <span className="font-mono">{tx.hash}</span>
+                                                <span className="font-mono break-all">{tx.hash}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-left sm:text-right">
                                         <p className={`font-mono font-medium ${tx.type === 'deposit' || tx.type === 'claim_rewards' || tx.type === 'claim_yield' || tx.type === 'finalize_unstake' ? 'text-verent-green' : 'text-gray-900'}`}>
                                             {tx.type === 'deposit' || tx.type === 'claim_rewards' || tx.type === 'claim_yield' || tx.type === 'finalize_unstake' ? '+' : '-'}{tx.amount} {tx.currency}
                                         </p>

@@ -48,9 +48,9 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
   );
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-12 animate-in fade-in duration-500 mb-12">
+    <div className="mx-auto mb-12 max-w-4xl space-y-8 px-4 py-5 animate-in fade-in duration-500 sm:px-6 sm:py-6 sm:space-y-10 lg:space-y-12">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-6">
+      <div className="flex flex-col gap-4 border-b border-gray-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
          <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
             <p className="text-gray-500 text-sm mt-1">Manage your profile, security, and preferences.</p>
@@ -117,7 +117,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
       <section>
          <SectionHeader title="Trust & Verification" description="This screen only shows live profile state currently persisted by the platform." />
          <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-sm">
-            <div className="flex items-start gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
               <div className="p-3 bg-green-50 rounded-xl">
                 <ShieldCheck className="w-6 h-6 text-green-600" />
               </div>
@@ -154,7 +154,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
                 <span className="text-xs text-gray-500">External wallet linking is not live in this release.</span>
             </div>
             <div className="divide-y divide-gray-100">
-                <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors group">
+                <div className="group flex flex-col gap-3 p-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center shadow-sm">
                             <Wallet className="w-5 h-5 text-white" />
@@ -179,8 +179,8 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
       <section>
         <SectionHeader title="Notifications" description="Choose what updates you want to receive." />
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden divide-y divide-gray-100 shadow-sm">
-            <div className="p-4 sm:p-6 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+            <div className="flex items-start justify-between gap-4 p-4 sm:p-6">
+                <div className="flex items-start space-x-4">
                     <Mail className="w-5 h-5 text-gray-400" />
                     <div>
                         <p className="text-sm font-medium text-gray-900">Rental Requests</p>
@@ -190,8 +190,8 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
                 <Toggle checked={notifications.rentals} onChange={() => setNotifications(prev => ({...prev, rentals: !prev.rentals}))} />
             </div>
 
-             <div className="p-4 sm:p-6 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+             <div className="flex items-start justify-between gap-4 p-4 sm:p-6">
+                <div className="flex items-start space-x-4">
                     <AlertTriangle className="w-5 h-5 text-gray-400" />
                     <div>
                         <p className="text-sm font-medium text-gray-900">Security Alerts</p>
@@ -201,8 +201,8 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
                 <Toggle checked={notifications.security} onChange={() => setNotifications(prev => ({...prev, security: !prev.security}))} />
             </div>
 
-             <div className="p-4 sm:p-6 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+             <div className="flex items-start justify-between gap-4 p-4 sm:p-6">
+                <div className="flex items-start space-x-4">
                     <Bell className="w-5 h-5 text-gray-400" />
                     <div>
                         <p className="text-sm font-medium text-gray-900">Marketing & Updates</p>

@@ -24,22 +24,22 @@ const Explore: React.FC<ExploreProps> = ({ listings, onSelectListing }) => {
   );
 
   return (
-    <div className="p-6 space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-5 px-4 py-5 animate-in fade-in duration-500 sm:px-6 sm:py-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Explore Infrastructure</h1>
         
-        <div className="flex items-center space-x-2">
-            <div className="relative">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input 
                     type="text" 
                     placeholder="Search gear..." 
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-verent-green/20 focus:border-verent-green outline-none w-64"
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm outline-none focus:border-verent-green focus:ring-2 focus:ring-verent-green/20 sm:w-64"
                 />
             </div>
-            <button className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
+            <button className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 sm:self-auto">
                 <Filter className="w-4 h-4" />
             </button>
         </div>
@@ -63,7 +63,7 @@ const Explore: React.FC<ExploreProps> = ({ listings, onSelectListing }) => {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 xl:gap-6">
         {filteredListings.map((listing) => (
             <div 
                 key={listing.id} 

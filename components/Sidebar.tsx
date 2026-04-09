@@ -26,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, 
   ];
 
   // Classes for Mobile Drawer vs Desktop Sidebar
-  const mobileClasses = `fixed inset-y-0 left-0 z-40 w-64 bg-[#FAFAFA] shadow-2xl transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+  const mobileClasses = `fixed inset-y-0 left-0 z-50 w-[min(85vw,20rem)] bg-[#FAFAFA] shadow-2xl transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
     isOpen ? 'translate-x-0' : '-translate-x-full'
   }`;
   
@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, 
       {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
           onClick={onClose}
         ></div>
       )}

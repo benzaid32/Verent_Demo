@@ -62,9 +62,9 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto animate-in fade-in duration-500">
+    <div className="mx-auto max-w-[1400px] animate-in fade-in duration-500">
       {/* Sticky Header for Navigation */}
-      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-white/80 px-4 py-4 backdrop-blur-md sm:px-6">
          <button 
             onClick={onBack}
             className="flex items-center space-x-2 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300"
@@ -80,13 +80,13 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
         </div>
       </div>
 
-      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
         {/* Immersive Hero Image */}
-        <div className="relative w-full h-[400px] lg:h-[500px] rounded-3xl overflow-hidden mb-8 group">
+        <div className="group relative mb-6 h-[280px] w-full overflow-hidden rounded-3xl sm:mb-8 sm:h-[360px] lg:h-[500px]">
             <img src={listing.imageUrl} alt={listing.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-            <div className="absolute bottom-8 left-8 text-white">
-                 <div className="flex items-center space-x-3 mb-3">
+            <div className="absolute bottom-5 left-4 right-4 text-white sm:bottom-8 sm:left-8 sm:right-auto">
+                 <div className="mb-3 flex flex-wrap items-center gap-2 sm:gap-3">
                     <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs uppercase font-bold tracking-wider rounded-full">
                         {listing.category}
                     </span>
@@ -100,8 +100,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                         <span>On-Chain Listed</span>
                     </span>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-2">{listing.title}</h1>
-                <div className="flex items-center space-x-4 text-sm text-gray-200">
+                <h1 className="mb-2 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">{listing.title}</h1>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-200 sm:gap-4">
                     <span className="flex items-center">
                         <MapPin className="w-4 h-4 mr-1" />
                         {listing.location}
@@ -111,7 +111,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
             </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
             
             {/* LEFT COLUMN - Content */}
             <div className="lg:col-span-8 space-y-10">
@@ -141,7 +141,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                 </div>
 
                 {/* Owner Info */}
-                <div className="flex items-center justify-between p-6 bg-gray-50 rounded-2xl border border-gray-200">
+                <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
                     <div className="flex items-center space-x-4">
                         <div className="relative">
                             <img src={listing.ownerAvatar} alt={listing.ownerName} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" />
@@ -159,7 +159,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                     {!isOwner && (
                         <button 
                           onClick={() => { void onContactOwner(); }}
-                          className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 sm:w-auto"
                         >
                             Contact Owner
                         </button>
@@ -189,7 +189,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
 
             {/* RIGHT COLUMN - Sticky Booking Card OR Management Card */}
             <div className="lg:col-span-4">
-                <div className="sticky top-24 space-y-6">
+                <div className="space-y-6 lg:sticky lg:top-24">
                     
                     {/* CONDITIONAL RENDER: OWNER vs RENTER */}
                     {isOwner ? (

@@ -11,7 +11,7 @@ interface NotificationsPopoverProps {
 
 const NotificationsPopover: React.FC<NotificationsPopoverProps> = ({ notifications, onMarkAllRead, onClose }) => {
   return (
-    <div className="absolute top-12 right-0 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="absolute right-0 top-12 z-50 w-[min(20rem,calc(100vw-1rem))] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200 sm:w-80">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
             <h3 className="font-bold text-gray-900 text-sm">Notifications</h3>
             <button onClick={() => void onMarkAllRead()} className="text-xs text-verent-green hover:text-emerald-700 font-medium">Mark all read</button>

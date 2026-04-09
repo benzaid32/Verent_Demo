@@ -12,7 +12,7 @@ interface UserMenuProps {
 
 const UserMenu: React.FC<UserMenuProps> = ({ profile, onClose, onLogout, onSettings }) => {
   return (
-    <div className="absolute top-12 right-0 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="absolute right-0 top-12 z-50 w-[min(16rem,calc(100vw-1rem))] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200 sm:w-64">
         <div className="p-4 border-b border-gray-100 bg-gray-50">
             <p className="text-sm font-bold text-gray-900">{profile.username}</p>
             <p className="text-xs text-gray-500 truncate">{profile.email}</p>
