@@ -533,7 +533,7 @@ export async function getDashboard(profileId: string): Promise<DashboardPayload>
         contextRentalStatus: contextRental?.status ?? undefined,
         lastMessage: mergedMessages.at(-1)?.text || canonicalConversation.last_message,
         lastMessageDate: canonicalConversation.last_message_date,
-        unreadCount: group.reduce((sum, conversation) => sum + (conversation.unread_count ?? 0), 0),
+        unreadCount: mergedMessages.filter((message) => message.sender_id !== profile.id && !message.is_read).length,
         messages: mergedMessages.map((message) => ({
           id: message.id,
           senderId: message.sender_id,
@@ -691,7 +691,10 @@ export async function getDashboard(profileId: string): Promise<DashboardPayload>
         contextListingThumbnail: relatedListing?.imageUrl,
         contextRentalId: relatedRental?.id,
         contextRentalStatus: relatedRental?.status,
-        unreadCount: group.reduce((sum, conversation) => sum + conversation.unreadCount, 0),
+        unreadCount: group
+          .flatMap((conversation) => conversation.messages)
+          .filter((message) => message.senderId !== profile.id && !message.isRead)
+          .length,
         messages: group.flatMap((conversation) => conversation.messages).sort((left, right) => new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime())
       };
     }).sort((left, right) => {
@@ -1349,6 +1352,91 @@ export async function markConversationRead(profileId: string, conversationId: st
         ? message
         : { ...message, isRead: true }
     ));
+  }
+
+  await saveData(data);
+  const dashboard = await getDashboard(profileId);
+  const updatedConversation = dashboard.conversations.find((item) =>
+    item.participantId === targetConversation.participantId || item.id === conversationId
+  );
+  if (!updatedConversation) {
+    throw new Error('Conversation not found');
+  }
+  return updatedConversation;
+}
+
+export async function markConversationUnread(profileId: string, conversationId: string) {
+  const supabase = getSupabase();
+  if (supabase) {
+    const { data: scopedConversationRows } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('id');
+
+    const targetConversation = (scopedConversationRows ?? []).find((item) => item.id === conversationId);
+    if (!targetConversation) {
+      throw new Error('Conversation not found');
+    }
+
+    const relatedConversationRows = (scopedConversationRows ?? []).filter((item) =>
+      item.participant_id === targetConversation.participant_id
+    );
+    const relatedConversationIds = relatedConversationRows.map((item) => item.id);
+
+    if (relatedConversationIds.length > 0) {
+      await supabase
+        .from('conversations')
+        .update({ unread_count: 1 })
+        .in('id', relatedConversationIds);
+
+      const { data: counterpartMessages } = await supabase
+        .from('messages')
+        .select('id, sender_id, timestamp')
+        .in('conversation_id', relatedConversationIds)
+        .neq('sender_id', profileId)
+        .order('timestamp', { ascending: false });
+
+      const latestIncomingMessageId = counterpartMessages?.[0]?.id;
+      if (latestIncomingMessageId) {
+        await supabase
+          .from('messages')
+          .update({ is_read: false })
+          .eq('id', latestIncomingMessageId);
+      }
+    }
+
+    const dashboard = await getDashboard(profileId);
+    const updatedConversation = dashboard.conversations.find((item) =>
+      item.participantId === targetConversation.participant_id || item.id === conversationId
+    );
+    if (!updatedConversation) {
+      throw new Error('Conversation not found');
+    }
+    return updatedConversation;
+  }
+
+  const data = await loadData();
+  const targetConversation = data.conversations.find((item) => item.id === conversationId);
+  if (!targetConversation) {
+    throw new Error('Conversation not found');
+  }
+
+  const relatedConversations = data.conversations.filter((item) => item.participantId === targetConversation.participantId);
+  for (const conversation of relatedConversations) {
+    const latestIncomingMessageIndex = [...conversation.messages]
+      .map((message, index) => ({ message, index }))
+      .filter(({ message }) => message.senderId !== profileId)
+      .at(-1)?.index;
+
+    conversation.unreadCount = latestIncomingMessageIndex !== undefined ? 1 : 0;
+    if (latestIncomingMessageIndex !== undefined) {
+      conversation.messages = conversation.messages.map((message, index) => (
+        index === latestIncomingMessageIndex
+          ? { ...message, isRead: false }
+          : message
+      ));
+    }
   }
 
   await saveData(data);

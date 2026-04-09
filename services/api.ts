@@ -172,6 +172,12 @@ export async function markConversationReadApi(conversationId: string) {
   });
 }
 
+export async function markConversationUnreadApi(conversationId: string) {
+  return request<DashboardPayload['conversations'][number]>(`/conversations/${conversationId}/unread`, {
+    method: 'POST'
+  });
+}
+
 export async function markNotificationsReadApi() {
   return request<DashboardPayload['notifications']>('/notifications/mark-read', {
     method: 'POST'

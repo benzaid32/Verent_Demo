@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Conversation } from '../types';
-import { Send, Check, CheckCheck, Package2, ChevronLeft } from 'lucide-react';
+import { Send, Check, CheckCheck, Package2, ChevronLeft, MoreHorizontal } from 'lucide-react';
 
 interface MessagesProps {
   currentUserId: string;
@@ -8,12 +8,14 @@ interface MessagesProps {
   activeConversationId?: string | null;
   onSendMessage: (conversationId: string, text: string) => Promise<void>;
   onMarkConversationRead: (conversationId: string) => Promise<void>;
+  onMarkConversationUnread: (conversationId: string) => Promise<void>;
 }
 
-const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activeConversationId, onSendMessage, onMarkConversationRead }) => {
+const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activeConversationId, onSendMessage, onMarkConversationRead, onMarkConversationUnread }) => {
   const [activeConvId, setActiveConvId] = useState<string>(activeConversationId ?? conversations[0]?.id ?? '');
   const [inputText, setInputText] = useState('');
   const [isMobileThreadOpen, setIsMobileThreadOpen] = useState(Boolean(activeConversationId));
+  const [menuConversationId, setMenuConversationId] = useState<string | null>(null);
   const activeConversation = conversations.find(c => c.id === activeConvId) ?? conversations[0];
 
   const formatRentalStatus = (status?: Conversation['contextRentalStatus']) => {
@@ -48,6 +50,16 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
     }
     void onMarkConversationRead(activeConversation.id);
   }, [activeConversation?.id, activeConversation?.unreadCount, onMarkConversationRead]);
+
+  useEffect(() => {
+    if (!menuConversationId) {
+      return;
+    }
+
+    const handleClose = () => setMenuConversationId(null);
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, [menuConversationId]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +115,55 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
                       {formatRentalStatus(conv.contextRentalStatus)}
                     </span>
                   )}
+                  {conv.unreadCount > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-verent-green/10 px-2 py-0.5 text-[10px] font-semibold text-verent-green">
+                      Unread
+                    </span>
+                  )}
                 </div>
+              </div>
+              <div className="relative flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setMenuConversationId((current) => current === conv.id ? null : conv.id);
+                  }}
+                  className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-gray-600"
+                  aria-label="Conversation actions"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {menuConversationId === conv.id && (
+                  <div
+                    className="absolute right-0 top-8 z-20 w-36 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {conv.unreadCount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void onMarkConversationRead(conv.id);
+                          setMenuConversationId(null);
+                        }}
+                        className="w-full px-3 py-2.5 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                      >
+                        Mark as read
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void onMarkConversationUnread(conv.id);
+                          setMenuConversationId(null);
+                        }}
+                        className="w-full px-3 py-2.5 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                      >
+                        Mark as unread
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </button>
           ))}

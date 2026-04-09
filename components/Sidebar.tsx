@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Compass, LayoutDashboard, List, Wallet, Settings, LogOut, MessageSquare, X, Shield } from 'lucide-react';
-import { ViewMode } from '../types';
+import { UserRole, ViewMode } from '../types';
 
 const logo = new URL('../assets/favicon-32x32.png', import.meta.url).href;
 
@@ -11,20 +11,29 @@ interface SidebarProps {
   onLogout: () => void;
   walletBalance?: number;
   unreadMessagesCount?: number;
+  userRole: UserRole;
   isOpen: boolean;
   onClose: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, walletBalance = 0, unreadMessagesCount = 0, isOpen, onClose }) => {
-  const navItems = [
-    { id: 'explore', icon: Compass, label: 'Explore' },
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'messages', icon: MessageSquare, label: 'Inbox' },
-    { id: 'listings', icon: List, label: 'My Listings' },
-    { id: 'staking', icon: Shield, label: 'Safety Module' }, // New Staking Page
-    { id: 'wallet', icon: Wallet, label: 'Wallet' },
-    { id: 'settings', icon: Settings, label: 'Settings' },
-  ];
+const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, walletBalance = 0, unreadMessagesCount = 0, userRole, isOpen, onClose }) => {
+  const navItems = userRole === 'owner'
+    ? [
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Command Center' },
+        { id: 'listings', icon: List, label: 'My Listings' },
+        { id: 'messages', icon: MessageSquare, label: 'Inbox' },
+        { id: 'wallet', icon: Wallet, label: 'Wallet' },
+        { id: 'staking', icon: Shield, label: 'Safety Module' },
+        { id: 'settings', icon: Settings, label: 'Settings' }
+      ]
+    : [
+        { id: 'explore', icon: Compass, label: 'Explore' },
+        { id: 'dashboard', icon: LayoutDashboard, label: 'My Rentals' },
+        { id: 'messages', icon: MessageSquare, label: 'Inbox' },
+        { id: 'wallet', icon: Wallet, label: 'Wallet' },
+        { id: 'staking', icon: Shield, label: 'Safety Module' },
+        { id: 'settings', icon: Settings, label: 'Settings' }
+      ];
 
   // Classes for Mobile Drawer vs Desktop Sidebar
   const mobileClasses = `fixed inset-y-0 left-0 z-50 w-[min(85vw,20rem)] bg-[#FAFAFA] shadow-2xl transform transition-transform duration-300 ease-in-out md:translate-x-0 ${

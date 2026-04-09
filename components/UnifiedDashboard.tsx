@@ -43,6 +43,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   onCreateListing,
   onMessageOwner
 }) => {
+  const isRoleLocked = primaryRole === 'owner' || primaryRole === 'renter';
   const [activeTab, setActiveTab] = useState<'renting' | 'lending'>(initialTab);
   const [modalState, setModalState] = useState<RentalModalState>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -225,20 +226,26 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:justify-end">
-                <div className="inline-flex w-full rounded-xl bg-gray-100 p-1 sm:w-auto">
-                    <button 
-                        onClick={() => setActiveTab('renting')}
-                        className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'renting' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Renter
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('lending')}
-                        className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'lending' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Lister
-                    </button>
-                </div>
+                {isRoleLocked ? (
+                  <div className="inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 sm:w-auto">
+                    {primaryRole === 'owner' ? 'Lister workspace' : 'Renter workspace'}
+                  </div>
+                ) : (
+                  <div className="inline-flex w-full rounded-xl bg-gray-100 p-1 sm:w-auto">
+                      <button 
+                          onClick={() => setActiveTab('renting')}
+                          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'renting' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                          Renter
+                      </button>
+                      <button 
+                          onClick={() => setActiveTab('lending')}
+                          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'lending' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                          Lister
+                      </button>
+                  </div>
+                )}
                 
                 {activeTab === 'lending' && (
                     <button 

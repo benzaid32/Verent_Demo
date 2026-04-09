@@ -42,6 +42,7 @@ const App: React.FC = () => {
     requestQuote,
     sendMessage,
     markConversationRead,
+    markConversationUnread,
     updateProfileSettings,
     withdraw,
     stake,
@@ -63,6 +64,12 @@ const App: React.FC = () => {
   const isAuthenticated = Boolean(profile);
   const userRole = profile?.role === 'both' ? 'owner' : profile?.role ?? 'renter';
   const defaultAuthenticatedView: ViewMode = userRole === 'owner' ? 'dashboard' : 'explore';
+  const allowedViews = useMemo<ViewMode[]>(
+    () => (userRole === 'owner'
+      ? ['dashboard', 'listings', 'messages', 'wallet', 'staking', 'settings', 'details']
+      : ['explore', 'dashboard', 'messages', 'wallet', 'staking', 'settings', 'details']),
+    [userRole]
+  );
 
   const handleLogout = () => {
     logout();
@@ -86,12 +93,18 @@ const App: React.FC = () => {
 
     if (currentView === 'details' && !selectedListing) {
       setCurrentView(defaultAuthenticatedView);
+      return;
     }
-  }, [currentView, defaultAuthenticatedView, profile, selectedListing]);
+
+    if (!allowedViews.includes(currentView)) {
+      setCurrentView(defaultAuthenticatedView);
+    }
+  }, [allowedViews, currentView, defaultAuthenticatedView, profile, selectedListing]);
 
   // Handle Navigation
   const handleSwitchMode = (mode: ViewMode) => {
-    setCurrentView(mode);
+    const nextMode = allowedViews.includes(mode) ? mode : defaultAuthenticatedView;
+    setCurrentView(nextMode);
     if (mode !== 'details') {
       setSelectedListing(null);
     }
@@ -193,6 +206,7 @@ const App: React.FC = () => {
         onLogout={handleLogout}
         walletBalance={wallet?.usdcBalance}
         unreadMessagesCount={unreadMessagesCount}
+        userRole={userRole}
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
       />
@@ -272,7 +286,7 @@ const App: React.FC = () => {
 
         {/* Main Content Area */}
         <div className="relative flex-1 overflow-y-auto scroll-smooth pb-24 sm:pb-28">
-            {currentView === 'explore' && (
+            {userRole !== 'owner' && currentView === 'explore' && (
                 <Explore listings={listings} onSelectListing={handleSelectListing} />
             )}
             
@@ -305,6 +319,7 @@ const App: React.FC = () => {
                   activeConversationId={selectedConversationId}
                   onSendMessage={sendMessage}
                   onMarkConversationRead={markConversationRead}
+                  onMarkConversationUnread={markConversationUnread}
                 />
             )}
 
@@ -323,7 +338,7 @@ const App: React.FC = () => {
                 />
             )}
 
-            {currentView === 'listings' && (
+            {userRole === 'owner' && currentView === 'listings' && (
                 <MyListings listings={myListings} rentals={lendingRentals} onCreateListing={createListing} onSelectListing={handleSelectListing} />
             )}
 

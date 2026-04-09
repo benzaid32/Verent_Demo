@@ -14,7 +14,7 @@ import type {
 } from '../shared/contracts';
 import { buildAcceptRentalInstruction, buildClaimRewardsInstruction, buildCompleteRentalInstruction, buildConfirmPickupInstruction, buildConfirmReturnInstruction, buildCreateRentalEscrowInstructions, buildFinalizeUnstakeInstruction, buildRegisterListingInstruction, buildRequestUnstakeInstruction, buildStakeInstruction, buildUpdateListingInstruction } from '../shared/protocol-instructions';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, buildSolanaExplorerTxUrl, deriveAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '../shared/protocol';
-import { acceptRentalApi, analyzeFleetApi, ApiError, bootstrap, clearSessionToken, completeRentalApi, confirmPickupApi, createListingApi, createRentalApi, getQuote, getStoredToken, login, markConversationReadApi, markNotificationsReadApi, openConversationApi, sendMessageApi, stakeApi, storeToken, updateListingApi, updateSettingsApi, withdrawApi } from '../services/api';
+import { acceptRentalApi, analyzeFleetApi, ApiError, bootstrap, clearSessionToken, completeRentalApi, confirmPickupApi, createListingApi, createRentalApi, getQuote, getStoredToken, login, markConversationReadApi, markConversationUnreadApi, markNotificationsReadApi, openConversationApi, sendMessageApi, stakeApi, storeToken, updateListingApi, updateSettingsApi, withdrawApi } from '../services/api';
 import type { AIAnalysisResponse, Conversation, Listing, QuoteResponse, Rental, Transaction, WalletState } from '../types';
 
 interface AppContextValue {
@@ -43,6 +43,7 @@ interface AppContextValue {
   openConversationForListing: (listingId: string) => Promise<Conversation>;
   sendMessage: (conversationId: string, text: string) => Promise<void>;
   markConversationRead: (conversationId: string) => Promise<void>;
+  markConversationUnread: (conversationId: string) => Promise<void>;
   markNotificationsRead: () => Promise<void>;
   updateProfileSettings: (payload: SettingsUpdateRequest) => Promise<void>;
   withdraw: (
@@ -454,6 +455,14 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
     },
     markConversationRead: async (conversationId) => {
       const conversation = await markConversationReadApi(conversationId);
+      setConversations((prev) => prev.map((item) => (
+        item.id === conversation.id || item.participantId === conversation.participantId
+          ? conversation
+          : item
+      )));
+    },
+    markConversationUnread: async (conversationId) => {
+      const conversation = await markConversationUnreadApi(conversationId);
       setConversations((prev) => prev.map((item) => (
         item.id === conversation.id || item.participantId === conversation.participantId
           ? conversation
