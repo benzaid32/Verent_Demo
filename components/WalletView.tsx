@@ -333,11 +333,11 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                     <p className="text-xs text-gray-400 mt-1">Enough for ~{(wallet.solBalance / 0.000005).toFixed(0)} transactions</p>
                  </div>
 
-                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 mt-2">
+                 <div className="mt-2 rounded-xl border border-gray-100 bg-gray-50 p-4">
                     <p className="text-xs text-gray-500 mb-1">Public Address</p>
-                    <div className="flex items-center justify-between">
-                        <code className="text-xs text-gray-900 font-mono">{wallet.address.substring(0, 16)}...</code>
-                        <button onClick={handleCopy} className="text-verent-green hover:text-green-700 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                        <code className="min-w-0 flex-1 break-all text-[11px] text-gray-900 font-mono sm:text-xs">{wallet.address}</code>
+                        <button onClick={handleCopy} className="flex-shrink-0 text-verent-green hover:text-green-700 transition-colors">
                             {copied ? <CheckCircle2 className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                         </button>
                     </div>
@@ -374,7 +374,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
         <div className="min-h-[400px] p-4 sm:p-6 lg:p-8">
             {/* DEPOSIT VIEW */}
             {activeTab === 'deposit' && (
-                <div className="flex flex-col items-center justify-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex flex-col items-center justify-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 sm:space-y-8">
                     <div className="text-center space-y-2">
                         <h2 className="text-xl font-bold text-gray-900">Deposit Assets</h2>
                         <p className="text-sm text-gray-500">Send SOL, USDC, or VRNT to your embedded wallet address.</p>
@@ -383,24 +383,31 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                     <div className="group relative rounded-2xl border-2 border-dashed border-gray-200 bg-white p-4 shadow-sm sm:p-6">
                         <div className="absolute inset-0 bg-verent-green/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none"></div>
                         {depositQrCode ? (
-                          <img src={depositQrCode} alt="Wallet deposit QR code" className="h-40 w-40 rounded-xl sm:h-48 sm:w-48" />
+                          <img src={depositQrCode} alt="Wallet deposit QR code" className="h-36 w-36 rounded-xl sm:h-48 sm:w-48" />
                         ) : (
-                          <div className="flex h-40 w-40 items-center justify-center rounded-xl bg-gray-50 px-6 text-center text-xs font-medium text-gray-500 sm:h-48 sm:w-48">
+                          <div className="flex h-36 w-36 items-center justify-center rounded-xl bg-gray-50 px-6 text-center text-xs font-medium text-gray-500 sm:h-48 sm:w-48">
                             Generating QR code...
                           </div>
                         )}
                     </div>
 
                     <div className="w-full max-w-md">
-                        <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200 mb-4">
-                            <span className="font-mono text-sm text-gray-600">{wallet.address}</span>
+                        <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0 flex-1">
+                                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">Deposit Address</p>
+                                <span className="block break-all font-mono text-xs leading-6 text-gray-600 sm:text-sm">
+                                  {wallet.address}
+                                </span>
+                              </div>
                             <button 
                                 onClick={handleCopy}
-                                className="flex items-center space-x-2 text-xs font-medium text-gray-900 bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                                className="inline-flex items-center justify-center space-x-2 self-start rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 transition-colors hover:bg-gray-50 sm:self-center"
                             >
                                 {copied ? <CheckCircle2 className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                                 <span>Copy</span>
                             </button>
+                            </div>
                         </div>
 
                         <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl flex items-start space-x-3">

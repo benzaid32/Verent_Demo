@@ -141,6 +141,48 @@ function mapWalletRow(row: any): WalletSnapshot {
   };
 }
 
+function formatNotificationTimestamp(timestamp = new Date().toISOString()) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(new Date(timestamp));
+}
+
+async function createNotification(record: NotificationRecord & { profileId: string }) {
+  const supabase = getSupabase();
+  const timestamp = record.timestamp || formatNotificationTimestamp();
+
+  if (supabase) {
+    await supabase.from('notifications').insert({
+      id: record.id,
+      profile_id: record.profileId,
+      type: record.type,
+      title: record.title,
+      message: record.message,
+      timestamp,
+      is_read: record.isRead,
+      link: record.link
+    });
+    return {
+      ...record,
+      timestamp
+    };
+  }
+
+  const data = await loadData();
+  data.notifications.unshift({
+    ...record,
+    timestamp
+  });
+  await saveData(data);
+  return {
+    ...record,
+    timestamp
+  };
+}
+
 function isLegacyMockWallet(wallet: Pick<WalletSnapshot, 'solBalance' | 'usdcBalance' | 'vrntBalance' | 'stakedVrntBalance' | 'pendingYieldUsdc'>) {
   return wallet.solBalance === 2
     && wallet.usdcBalance === 5000
@@ -559,6 +601,7 @@ export async function getDashboard(profileId: string): Promise<DashboardPayload>
         .filter((item) => !item.profile_id || item.profile_id === profile.id)
         .map((item) => ({
         id: item.id,
+        profileId: item.profile_id ?? undefined,
         type: item.type,
         title: item.title,
         message: item.message,
@@ -656,7 +699,7 @@ export async function getDashboard(profileId: string): Promise<DashboardPayload>
       const rightAt = right.messages.at(-1)?.timestamp || right.lastMessageDate || '';
       return new Date(rightAt || 0).getTime() - new Date(leftAt || 0).getTime();
     }),
-    notifications: data.notifications,
+    notifications: data.notifications.filter((item) => !item.profileId || item.profileId === profile.id),
     transactions: data.transactions.filter((item) => item.profileId === profile.id),
     devices: data.devices
   };
@@ -714,6 +757,16 @@ export async function createListing(profileId: string, payload: CreateListingReq
       confirmed_slot: listing.confirmedSlot
     };
     await supabase.from('listings').insert(row);
+    await createNotification({
+      id: `not_${crypto.randomUUID().slice(0, 8)}`,
+      profileId: profile.id,
+      type: 'system',
+      title: 'Listing Published',
+      message: `${listing.title} is now live and ready to accept rental requests.`,
+      timestamp: formatNotificationTimestamp(listing.createdAt),
+      isRead: false,
+      link: '/listings'
+    });
     return listing;
   }
 
@@ -746,6 +799,16 @@ export async function createListing(profileId: string, payload: CreateListingReq
   }, profile.walletAddress);
 
   data.listings.unshift(listing);
+  data.notifications.unshift({
+    id: `not_${crypto.randomUUID().slice(0, 8)}`,
+    profileId,
+    type: 'system',
+    title: 'Listing Published',
+    message: `${listing.title} is now live and ready to accept rental requests.`,
+    timestamp: formatNotificationTimestamp(listing.createdAt),
+    isRead: false,
+    link: '/listings'
+  });
   await saveData(data);
   return listing;
 }
@@ -816,11 +879,51 @@ export async function createRental(rental: RentalRecord) {
       protocol_version: rental.protocolVersion
     };
     await supabase.from('rentals').insert(row);
+    await createNotification({
+      id: `not_${crypto.randomUUID().slice(0, 8)}`,
+      profileId: rental.ownerId,
+      type: 'rental',
+      title: 'New Rental Request',
+      message: `${rental.itemTitle} has a new booking request waiting for review.`,
+      timestamp: formatNotificationTimestamp(rental.createdAt),
+      isRead: false,
+      link: '/dashboard'
+    });
+    await createNotification({
+      id: `not_${crypto.randomUUID().slice(0, 8)}`,
+      profileId: rental.renterId,
+      type: 'wallet',
+      title: 'Escrow Created',
+      message: `Your booking request for ${rental.itemTitle} is now pending owner approval.`,
+      timestamp: formatNotificationTimestamp(rental.createdAt),
+      isRead: false,
+      link: '/dashboard'
+    });
     return rental;
   }
 
   const data = await loadData();
   data.rentals.unshift(rental);
+  data.notifications.unshift({
+    id: `not_${crypto.randomUUID().slice(0, 8)}`,
+    profileId: rental.ownerId,
+    type: 'rental',
+    title: 'New Rental Request',
+    message: `${rental.itemTitle} has a new booking request waiting for review.`,
+    timestamp: formatNotificationTimestamp(rental.createdAt),
+    isRead: false,
+    link: '/dashboard'
+  });
+  data.notifications.unshift({
+    id: `not_${crypto.randomUUID().slice(0, 8)}`,
+    profileId: rental.renterId,
+    type: 'wallet',
+    title: 'Escrow Created',
+    message: `Your booking request for ${rental.itemTitle} is now pending owner approval.`,
+    timestamp: formatNotificationTimestamp(rental.createdAt),
+    isRead: false,
+    link: '/dashboard'
+  });
   await saveData(data);
   return rental;
 }
@@ -841,7 +944,42 @@ export async function updateRental(rentalId: string, patch: Partial<RentalRecord
     if (!data) {
       throw new Error('Rental not found');
     }
-    return mapRentalRow(data);
+    const nextRental = mapRentalRow(data);
+    if (patch.status === 'pending_pickup') {
+      await createNotification({
+        id: `not_${crypto.randomUUID().slice(0, 8)}`,
+        profileId: nextRental.renterId,
+        type: 'rental',
+        title: 'Rental Approved',
+        message: `${nextRental.itemTitle} was approved and is ready for pickup verification.`,
+        timestamp: formatNotificationTimestamp(),
+        isRead: false,
+        link: '/dashboard'
+      });
+    } else if (patch.status === 'active') {
+      await createNotification({
+        id: `not_${crypto.randomUUID().slice(0, 8)}`,
+        profileId: nextRental.renterId,
+        type: 'rental',
+        title: 'Pickup Confirmed',
+        message: `${nextRental.itemTitle} is now active and the rental handoff has been confirmed.`,
+        timestamp: formatNotificationTimestamp(),
+        isRead: false,
+        link: '/dashboard'
+      });
+    } else if (patch.status === 'completed') {
+      await createNotification({
+        id: `not_${crypto.randomUUID().slice(0, 8)}`,
+        profileId: nextRental.renterId,
+        type: 'wallet',
+        title: 'Rental Completed',
+        message: `${nextRental.itemTitle} has been completed and escrow settlement is finalized.`,
+        timestamp: formatNotificationTimestamp(),
+        isRead: false,
+        link: '/dashboard'
+      });
+    }
+    return nextRental;
   }
 
   const data = await loadData();
@@ -850,8 +988,43 @@ export async function updateRental(rentalId: string, patch: Partial<RentalRecord
     throw new Error('Rental not found');
   }
   data.rentals[rentalIndex] = { ...data.rentals[rentalIndex], ...patch };
+  const nextRental = data.rentals[rentalIndex];
+  if (patch.status === 'pending_pickup') {
+    data.notifications.unshift({
+      id: `not_${crypto.randomUUID().slice(0, 8)}`,
+      profileId: nextRental.renterId,
+      type: 'rental',
+      title: 'Rental Approved',
+      message: `${nextRental.itemTitle} was approved and is ready for pickup verification.`,
+      timestamp: formatNotificationTimestamp(),
+      isRead: false,
+      link: '/dashboard'
+    });
+  } else if (patch.status === 'active') {
+    data.notifications.unshift({
+      id: `not_${crypto.randomUUID().slice(0, 8)}`,
+      profileId: nextRental.renterId,
+      type: 'rental',
+      title: 'Pickup Confirmed',
+      message: `${nextRental.itemTitle} is now active and the rental handoff has been confirmed.`,
+      timestamp: formatNotificationTimestamp(),
+      isRead: false,
+      link: '/dashboard'
+    });
+  } else if (patch.status === 'completed') {
+    data.notifications.unshift({
+      id: `not_${crypto.randomUUID().slice(0, 8)}`,
+      profileId: nextRental.renterId,
+      type: 'wallet',
+      title: 'Rental Completed',
+      message: `${nextRental.itemTitle} has been completed and escrow settlement is finalized.`,
+      timestamp: formatNotificationTimestamp(),
+      isRead: false,
+      link: '/dashboard'
+    });
+  }
   await saveData(data);
-  return data.rentals[rentalIndex];
+  return nextRental;
 }
 
 export async function createTransaction(record: TransactionRecord) {
@@ -1071,14 +1244,14 @@ export async function addMessage(conversationId: string, senderId: string, text:
         last_message_date: 'Just now',
         unread_count: (counterpartRow.unread_count ?? 0) + 1
       }).eq('id', counterpartRow.id);
-      await supabase.from('notifications').insert({
+      await createNotification({
         id: `not_${crypto.randomUUID().slice(0, 8)}`,
-        profile_id: counterpartRow.profile_id,
+        profileId: counterpartRow.profile_id,
         type: 'rental',
         title: 'New Message',
         message: text,
-        timestamp: 'Just now',
-        is_read: false,
+        timestamp: formatNotificationTimestamp(timestamp),
+        isRead: false,
         link: '/messages'
       });
     }
@@ -1106,8 +1279,87 @@ export async function addMessage(conversationId: string, senderId: string, text:
   });
   conversation.lastMessage = text;
   conversation.lastMessageDate = 'Just now';
+  data.notifications.unshift({
+    id: `not_${crypto.randomUUID().slice(0, 8)}`,
+    profileId: conversation.participantId,
+    type: 'rental',
+    title: 'New Message',
+    message: text,
+    timestamp: formatNotificationTimestamp(),
+    isRead: false,
+    link: '/messages'
+  });
   await saveData(data);
   return conversation;
+}
+
+export async function markConversationRead(profileId: string, conversationId: string) {
+  const supabase = getSupabase();
+  if (supabase) {
+    const { data: scopedConversationRows } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('id');
+
+    const targetConversation = (scopedConversationRows ?? []).find((item) => item.id === conversationId);
+    if (!targetConversation) {
+      throw new Error('Conversation not found');
+    }
+
+    const relatedConversationRows = (scopedConversationRows ?? []).filter((item) =>
+      item.participant_id === targetConversation.participant_id
+    );
+    const relatedConversationIds = relatedConversationRows.map((item) => item.id);
+
+    if (relatedConversationIds.length > 0) {
+      await supabase
+        .from('conversations')
+        .update({ unread_count: 0 })
+        .in('id', relatedConversationIds);
+
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .in('conversation_id', relatedConversationIds)
+        .neq('sender_id', profileId);
+    }
+
+    const dashboard = await getDashboard(profileId);
+    const updatedConversation = dashboard.conversations.find((item) =>
+      item.participantId === targetConversation.participant_id || item.id === conversationId
+    );
+    if (!updatedConversation) {
+      throw new Error('Conversation not found');
+    }
+    return updatedConversation;
+  }
+
+  const data = await loadData();
+  const targetConversation = data.conversations.find((item) => item.id === conversationId);
+  if (!targetConversation) {
+    throw new Error('Conversation not found');
+  }
+
+  const relatedConversations = data.conversations.filter((item) => item.participantId === targetConversation.participantId);
+  for (const conversation of relatedConversations) {
+    conversation.unreadCount = 0;
+    conversation.messages = conversation.messages.map((message) => (
+      message.senderId === profileId
+        ? message
+        : { ...message, isRead: true }
+    ));
+  }
+
+  await saveData(data);
+  const dashboard = await getDashboard(profileId);
+  const updatedConversation = dashboard.conversations.find((item) =>
+    item.participantId === targetConversation.participantId || item.id === conversationId
+  );
+  if (!updatedConversation) {
+    throw new Error('Conversation not found');
+  }
+  return updatedConversation;
 }
 
 export async function markNotificationsRead(profileId: string) {
@@ -1117,6 +1369,7 @@ export async function markNotificationsRead(profileId: string) {
     const { data } = await supabase.from('notifications').select('*').eq('profile_id', profileId);
     return (data ?? []).map((item) => ({
       id: item.id,
+      profileId: item.profile_id ?? undefined,
       type: item.type,
       title: item.title,
       message: item.message,
@@ -1201,6 +1454,16 @@ export async function applyWithdrawal(profileId: string, payload: WithdrawReques
       hash,
       explorer_url: explorerUrl
     });
+    await createNotification({
+      id: `not_${crypto.randomUUID().slice(0, 8)}`,
+      profileId,
+      type: 'wallet',
+      title: 'Withdrawal Confirmed',
+      message: `${payload.amount} ${payload.currency} was sent successfully from your wallet.`,
+      timestamp: formatNotificationTimestamp(),
+      isRead: false,
+      link: '/wallet'
+    });
     return wallet;
   }
 
@@ -1238,6 +1501,16 @@ export async function applyWithdrawal(profileId: string, payload: WithdrawReques
     status: 'confirmed',
     hash,
     explorerUrl
+  });
+  data.notifications.unshift({
+    id: `not_${crypto.randomUUID().slice(0, 8)}`,
+    profileId,
+    type: 'wallet',
+    title: 'Withdrawal Confirmed',
+    message: `${payload.amount} ${payload.currency} was sent successfully from your wallet.`,
+    timestamp: formatNotificationTimestamp(),
+    isRead: false,
+    link: '/wallet'
   });
 
   await saveData(data);
@@ -1289,6 +1562,22 @@ export async function applyStake(profileId: string, payload: StakeRequest, hash:
       hash,
       explorer_url: explorerUrl
     });
+    await createNotification({
+      id: `not_${crypto.randomUUID().slice(0, 8)}`,
+      profileId,
+      type: 'wallet',
+      title: payload.action === 'claim_rewards' ? 'Rewards Claimed' : payload.action === 'stake' ? 'Stake Confirmed' : payload.action === 'request_unstake' ? 'Unstake Requested' : 'Unstake Finalized',
+      message: payload.action === 'claim_rewards'
+        ? 'Your VRNT rewards are now available in your wallet.'
+        : payload.action === 'stake'
+          ? `${amount} VRNT has been staked and your collateral tier has been refreshed.`
+          : payload.action === 'request_unstake'
+            ? `Your request to unstake ${amount} VRNT is now in cooldown.`
+            : 'Your unstake cooldown is complete and tokens are back in your wallet.',
+      timestamp: formatNotificationTimestamp(),
+      isRead: false,
+      link: '/staking'
+    });
 
     return {
       wallet,
@@ -1335,6 +1624,22 @@ export async function applyStake(profileId: string, payload: StakeRequest, hash:
     status: 'confirmed',
     hash,
     explorerUrl
+  });
+  data.notifications.unshift({
+    id: `not_${crypto.randomUUID().slice(0, 8)}`,
+    profileId,
+    type: 'wallet',
+    title: payload.action === 'claim_rewards' ? 'Rewards Claimed' : payload.action === 'stake' ? 'Stake Confirmed' : payload.action === 'request_unstake' ? 'Unstake Requested' : 'Unstake Finalized',
+    message: payload.action === 'claim_rewards'
+      ? 'Your VRNT rewards are now available in your wallet.'
+      : payload.action === 'stake'
+        ? `${amount} VRNT has been staked and your collateral tier has been refreshed.`
+        : payload.action === 'request_unstake'
+          ? `Your request to unstake ${amount} VRNT is now in cooldown.`
+          : 'Your unstake cooldown is complete and tokens are back in your wallet.',
+    timestamp: formatNotificationTimestamp(),
+    isRead: false,
+    link: '/staking'
   });
 
   await saveData(data);

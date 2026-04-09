@@ -168,6 +168,7 @@ export interface ConversationRecord {
 
 export interface NotificationRecord {
   id: string;
+  profileId?: string;
   type: NotificationType;
   title: string;
   message: string;

@@ -41,6 +41,7 @@ const App: React.FC = () => {
     updateListing,
     requestQuote,
     sendMessage,
+    markConversationRead,
     updateProfileSettings,
     withdraw,
     stake,
@@ -58,6 +59,7 @@ const App: React.FC = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const unreadNotifications = useMemo(() => notifications.filter((item) => !item.isRead).length, [notifications]);
+  const unreadMessagesCount = useMemo(() => conversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0), [conversations]);
   const isAuthenticated = Boolean(profile);
   const userRole = profile?.role === 'both' ? 'owner' : profile?.role ?? 'renter';
   const defaultAuthenticatedView: ViewMode = userRole === 'owner' ? 'dashboard' : 'explore';
@@ -94,6 +96,33 @@ const App: React.FC = () => {
       setSelectedListing(null);
     }
     setIsMobileMenuOpen(false); // Close mobile menu on navigation
+  };
+
+  const handleNotificationNavigate = async (link?: string) => {
+    await markNotificationsRead();
+    setShowNotifications(false);
+
+    if (link === '/messages') {
+      setCurrentView('messages');
+      return;
+    }
+
+    if (link === '/wallet') {
+      setCurrentView('wallet');
+      return;
+    }
+
+    if (link === '/staking') {
+      setCurrentView('staking');
+      return;
+    }
+
+    if (link === '/listings') {
+      setCurrentView('listings');
+      return;
+    }
+
+    setCurrentView('dashboard');
   };
 
   // Handle Listing Selection
@@ -163,6 +192,7 @@ const App: React.FC = () => {
         onSwitchMode={handleSwitchMode} 
         onLogout={handleLogout}
         walletBalance={wallet?.usdcBalance}
+        unreadMessagesCount={unreadMessagesCount}
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
       />
@@ -202,7 +232,12 @@ const App: React.FC = () => {
                     )}
                 </button>
                 {showNotifications && (
-                    <NotificationsPopover notifications={notifications} onMarkAllRead={markNotificationsRead} onClose={() => setShowNotifications(false)} />
+                    <NotificationsPopover
+                      notifications={notifications}
+                      onMarkAllRead={markNotificationsRead}
+                      onNavigate={(link) => { void handleNotificationNavigate(link); }}
+                      onClose={() => setShowNotifications(false)}
+                    />
                 )}
             </div>
 
@@ -264,12 +299,20 @@ const App: React.FC = () => {
             )}
 
             {currentView === 'messages' && (
-                <Messages currentUserId={profile.id} conversations={conversations} activeConversationId={selectedConversationId} onSendMessage={sendMessage} />
+                <Messages
+                  currentUserId={profile.id}
+                  conversations={conversations}
+                  activeConversationId={selectedConversationId}
+                  onSendMessage={sendMessage}
+                  onMarkConversationRead={markConversationRead}
+                />
             )}
 
             {currentView === 'dashboard' && (
                 <UnifiedDashboard
                   initialTab={userRole === 'owner' ? 'lending' : 'renting'}
+                  primaryRole={userRole}
+                  myListingsCount={myListings.length}
                   rentingRentals={rentingRentals}
                   lendingRentals={lendingRentals}
                   onAcceptRental={acceptRentalById}

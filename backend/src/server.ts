@@ -9,7 +9,7 @@ import { analyzeFleet } from './gemini.js';
 import { attachRentalProtocolMetadata } from './protocol-indexer.js';
 import { verifyPrivyToken } from './privy.js';
 import { assertAccountExists, assertSolanaRpcReady, confirmSignature, getTreasuryStatus, submitWithdrawalMemo } from './solana.js';
-import { addMessage, applyWithdrawal, assertStorageReady, createListing, createOrOpenConversation, createRental, createTransaction, getDashboard, getPersistenceStatus, markNotificationsRead, updateListing, updateRental, updateSettings, upsertDemoProfile } from './store.js';
+import { addMessage, applyWithdrawal, assertStorageReady, createListing, createOrOpenConversation, createRental, createTransaction, getDashboard, getPersistenceStatus, markConversationRead, markNotificationsRead, updateListing, updateRental, updateSettings, upsertDemoProfile } from './store.js';
 
 assertRequiredEnv();
 
@@ -477,6 +477,16 @@ app.post<{ Params: { conversationId: string }; Body: { text: string } }>('/conve
   }
 
   const conversation = await addMessage(request.params.conversationId, session.sub, request.body.text);
+  return reply.send(conversation);
+});
+
+app.post<{ Params: { conversationId: string } }>('/conversations/:conversationId/read', async (request, reply) => {
+  const session = await requireSession(request, reply);
+  if (!session) {
+    return;
+  }
+
+  const conversation = await markConversationRead(session.sub, request.params.conversationId);
   return reply.send(conversation);
 });
 

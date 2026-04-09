@@ -7,9 +7,10 @@ interface MessagesProps {
   conversations: Conversation[];
   activeConversationId?: string | null;
   onSendMessage: (conversationId: string, text: string) => Promise<void>;
+  onMarkConversationRead: (conversationId: string) => Promise<void>;
 }
 
-const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activeConversationId, onSendMessage }) => {
+const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activeConversationId, onSendMessage, onMarkConversationRead }) => {
   const [activeConvId, setActiveConvId] = useState<string>(activeConversationId ?? conversations[0]?.id ?? '');
   const [inputText, setInputText] = useState('');
   const [isMobileThreadOpen, setIsMobileThreadOpen] = useState(Boolean(activeConversationId));
@@ -40,6 +41,13 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
       setIsMobileThreadOpen(false);
     }
   }, [activeConversation]);
+
+  useEffect(() => {
+    if (!activeConversation?.id || activeConversation.unreadCount <= 0) {
+      return;
+    }
+    void onMarkConversationRead(activeConversation.id);
+  }, [activeConversation?.id, activeConversation?.unreadCount, onMarkConversationRead]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();

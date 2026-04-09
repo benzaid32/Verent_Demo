@@ -1,7 +1,7 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Listing, QuoteResponse, Rental, User, WalletState } from '../types';
-import { ArrowLeft, ShieldCheck, MapPin, CheckCircle2, Clock, Zap, Lock, Edit3, Wallet } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, MapPin, CheckCircle2, Clock, Zap, Lock, Edit3, Wallet, Sparkles, Boxes, ArrowRight, BadgeCheck } from 'lucide-react';
 import BookingModal from './BookingModal';
 import OnChainProofCard from './OnChainProofCard';
 import EditListingModal from './EditListingModal';
@@ -56,6 +56,31 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
   const ownerWalletLabel = listing.ownerWalletAddress
     ? `${listing.ownerWalletAddress.slice(0, 6)}...${listing.ownerWalletAddress.slice(-6)}`
     : null;
+  const availabilityLabel = listing.availability.replace(/_/g, ' ');
+  const collateralSavings = Math.max(0, listing.collateralValueUsdc - requiredCollateral);
+
+  const overviewStats = useMemo(() => ([
+    {
+      label: 'Category',
+      value: listing.category,
+      icon: <Boxes className="h-4 w-4 text-gray-400" />
+    },
+    {
+      label: 'Location',
+      value: listing.location,
+      icon: <MapPin className="h-4 w-4 text-gray-400" />
+    },
+    {
+      label: 'Availability',
+      value: availabilityLabel,
+      icon: <BadgeCheck className="h-4 w-4 text-gray-400" />
+    },
+    {
+      label: 'Daily Rate',
+      value: `$${listing.dailyRateUsdc.toFixed(2)}`,
+      icon: <Wallet className="h-4 w-4 text-gray-400" />
+    }
+  ]), [availabilityLabel, listing.category, listing.dailyRateUsdc, listing.location]);
 
   const handleBookingComplete = async () => {
     return onRent(days);
@@ -63,11 +88,10 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
 
   return (
     <div className="mx-auto max-w-[1400px] animate-in fade-in duration-500">
-      {/* Sticky Header for Navigation */}
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-white/80 px-4 py-4 backdrop-blur-md sm:px-6">
          <button 
             onClick={onBack}
-            className="flex items-center space-x-2 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300"
+            className="flex items-center space-x-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:text-black"
         >
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
@@ -80,68 +104,120 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
         </div>
       </div>
 
-        <div className="p-4 sm:p-6 lg:p-8">
-        {/* Immersive Hero Image */}
-        <div className="group relative mb-6 h-[280px] w-full overflow-hidden rounded-3xl sm:mb-8 sm:h-[360px] lg:h-[500px]">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="group relative mb-6 h-[320px] w-full overflow-hidden rounded-[2rem] border border-gray-200 bg-gray-950 sm:mb-8 sm:h-[420px] lg:h-[520px]">
             <img src={listing.imageUrl} alt={listing.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-            <div className="absolute bottom-5 left-4 right-4 text-white sm:bottom-8 sm:left-8 sm:right-auto">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+            <div className="absolute right-4 top-4 rounded-full border border-white/15 bg-black/45 px-4 py-2 text-right text-white backdrop-blur-md sm:right-6 sm:top-6">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-300">Starting at</p>
+              <p className="text-xl font-bold tracking-tight sm:text-2xl">${listing.dailyRateUsdc.toFixed(0)}<span className="ml-1 text-sm font-medium text-gray-300">/day</span></p>
+            </div>
+            <div className="absolute bottom-5 left-4 right-4 text-white sm:bottom-8 sm:left-8 sm:right-8">
                  <div className="mb-3 flex flex-wrap items-center gap-2 sm:gap-3">
-                    <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs uppercase font-bold tracking-wider rounded-full">
+                    <span className="rounded-full border border-white/20 bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md">
                         {listing.category}
                     </span>
                     {listing.productType && (
-                      <span className="px-3 py-1 bg-black/30 backdrop-blur-md border border-white/10 text-white text-xs uppercase font-bold tracking-wider rounded-full">
+                      <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md">
                         {listing.productType}
                       </span>
                     )}
-                    <span className="flex items-center space-x-1 text-verent-green text-xs font-bold bg-black/40 px-3 py-1 rounded-full backdrop-blur-md border border-verent-green/30">
+                    <span className="flex items-center space-x-1 rounded-full border border-verent-green/30 bg-black/40 px-3 py-1 text-xs font-bold text-verent-green backdrop-blur-md">
                         <ShieldCheck className="w-3.5 h-3.5" />
                         <span>On-Chain Listed</span>
                     </span>
                 </div>
-                <h1 className="mb-2 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">{listing.title}</h1>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-200 sm:gap-4">
+                <h1 className="max-w-4xl text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">{listing.title}</h1>
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-200 sm:text-base">
+                  {listing.description}
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-200 sm:gap-4">
                     <span className="flex items-center">
                         <MapPin className="w-4 h-4 mr-1" />
                         {listing.location}
                     </span>
-                    <span className="flex items-center">{listing.availability.replace('_', ' ')}</span>
+                    <span className="flex items-center">{availabilityLabel}</span>
                 </div>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
-            
-            {/* LEFT COLUMN - Content */}
-            <div className="lg:col-span-8 space-y-10">
-                
-                {/* Specs Grid - Technical & B2B Focused */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8">
-                    <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center space-x-2">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+            <div className="space-y-8 lg:col-span-8">
+                <section className="rounded-[1.75rem] border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+                  <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Overview</p>
+                      <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">Professional asset profile</h2>
+                    </div>
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600">
+                      <Sparkles className="h-3.5 w-3.5 text-verent-green" />
+                      <span>Minimal, investor-ready presentation</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {overviewStats.map((stat) => (
+                      <div key={stat.label} className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{stat.label}</span>
+                          {stat.icon}
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900">{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 rounded-2xl border border-verent-green/15 bg-verent-green/[0.04] p-4 sm:p-5">
+                    <div className="flex items-start gap-3">
+                      <Lock className="mt-0.5 h-5 w-5 flex-shrink-0 text-verent-green" />
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">Escrow-native rental flow</h3>
+                        <p className="mt-1 text-sm leading-relaxed text-gray-600">
+                          Booking funds and refundable collateral are enforced through the Verent rental program, with every important state transition backed by on-chain proof.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-[1.75rem] border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+                    <h3 className="mb-6 flex items-center space-x-2 text-lg font-bold text-gray-900">
                         <Zap className="w-5 h-5 text-gray-400" />
                         <span>Technical Specifications</span>
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-6 gap-x-8">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         {listing.specs.map((spec, idx) => (
-                            <div key={idx} className="space-y-1">
-                                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Feature {idx + 1}</p>
-                                <p className="text-sm font-medium text-gray-900 font-mono border-l-2 border-gray-200 pl-3">{spec}</p>
+                            <div key={idx} className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">Feature {idx + 1}</p>
+                                <p className="mt-2 text-sm font-medium text-gray-900">{spec}</p>
                             </div>
                         ))}
                     </div>
-                </div>
+                </section>
 
-                {/* Description */}
-                 <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">About this asset</h3>
-                    <p className="text-gray-600 leading-relaxed text-lg">
-                        {listing.description}
-                    </p>
-                </div>
+                <section className="rounded-[1.75rem] border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+                  <div className="mb-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">About</p>
+                    <h3 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">Why this listing stands out</h3>
+                  </div>
+                  <p className="max-w-3xl text-base leading-8 text-gray-600">
+                    {listing.description}
+                  </p>
+                </section>
 
-                {/* Owner Info */}
-                <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                <section className="rounded-[1.75rem] border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+                  <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Owner</p>
+                      <h3 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">Trusted operator</h3>
+                    </div>
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full border border-green-100 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Verified profile</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
                     <div className="flex items-center space-x-4">
                         <div className="relative">
                             <img src={listing.ownerAvatar} alt={listing.ownerName} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" />
@@ -164,7 +240,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                             Contact Owner
                         </button>
                     )}
-                </div>
+                  </div>
+                </section>
 
                 <OnChainProofCard
                   signature={listing.confirmedSignature}
@@ -175,73 +252,71 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                   cluster={listing.chainCluster}
                   protocolVersion={listing.protocolVersion}
                 />
-
-                <div className="p-6 rounded-2xl bg-verent-green/5 border border-verent-green/20 flex items-start space-x-4">
-                    <Lock className="w-6 h-6 text-verent-green flex-shrink-0" />
-                    <div>
-                        <h4 className="font-bold text-gray-900 text-sm">Escrow Protected</h4>
-                        <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                            Booking funds and collateral are locked through the Verent rental program and every successful state change surfaces fresh chain proof.
-                        </p>
-                    </div>
-                </div>
             </div>
 
-            {/* RIGHT COLUMN - Sticky Booking Card OR Management Card */}
             <div className="lg:col-span-4">
-                <div className="space-y-6 lg:sticky lg:top-24">
-                    
-                    {/* CONDITIONAL RENDER: OWNER vs RENTER */}
+                <div className="space-y-5 lg:sticky lg:top-24">
                     {isOwner ? (
-                        /* OWNER MANAGEMENT CARD */
-                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/40">
-                            <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+                        <div className="rounded-[1.75rem] border border-gray-200 bg-white p-6 shadow-xl shadow-gray-200/40">
+                            <div className="mb-6 flex items-center justify-between border-b border-gray-100 pb-4">
                                 <div className="flex items-center space-x-2">
                                     <div className="p-2 bg-gray-100 rounded-lg">
                                         <Edit3 className="w-4 h-4 text-gray-900" />
                                     </div>
-                                    <span className="font-bold text-gray-900">Manage Listing</span>
+                                    <span className="font-bold text-gray-900">Owner Controls</span>
                                 </div>
-                                <div className="flex items-center space-x-1 text-green-600 bg-green-50 px-2 py-1 rounded text-xs font-bold">
+                                <div className="flex items-center space-x-1 rounded bg-green-50 px-2 py-1 text-xs font-bold text-green-600">
                                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                    <span>{listing.availability}</span>
+                                    <span>{availabilityLabel}</span>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
-                                <button onClick={() => setShowEditModal(true)} className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group">
+                                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">Listing performance</p>
+                                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                                    Keep pricing, metadata, and presentation sharp to improve trust and conversion.
+                                  </p>
+                                </div>
+                                <button onClick={() => setShowEditModal(true)} className="group flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50">
                                     <div className="flex items-center space-x-3">
                                         <Edit3 className="w-4 h-4 text-gray-400 group-hover:text-gray-900" />
                                         <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Edit Details & Price</span>
                                     </div>
-                                    <ArrowLeft className="w-4 h-4 text-gray-300 rotate-180 group-hover:text-gray-900" />
+                                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-900" />
                                 </button>
                             </div>
                         </div>
                     ) : (
-                        /* RENTER BOOKING CARD */
-                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/40">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex flex-col">
-                                    <span className="text-3xl font-bold text-gray-900 font-mono tracking-tight">${listing.dailyRateUsdc}</span>
-                                    <span className="text-sm text-gray-400 font-medium">per day</span>
-                                </div>
-                                <div className="flex flex-col items-end">
-                                    <span className="text-xs font-bold text-verent-green bg-green-50 px-2 py-1 rounded-md uppercase">{listing.availability}</span>
+                        <div className="overflow-hidden rounded-[1.75rem] border border-gray-200 bg-white shadow-xl shadow-gray-200/40">
+                            <div className="border-b border-gray-100 bg-gray-50/70 p-6">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex flex-col">
+                                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">Reserve this asset</p>
+                                      <span className="mt-2 text-4xl font-bold tracking-tight text-gray-900 font-mono">${listing.dailyRateUsdc.toFixed(0)}</span>
+                                      <span className="text-sm font-medium text-gray-400">per day</span>
+                                  </div>
+                                  <div className="flex flex-col items-end">
+                                      <span className="rounded-md bg-green-50 px-2.5 py-1 text-xs font-bold uppercase text-verent-green">{availabilityLabel}</span>
+                                      <span className="mt-3 text-xs text-gray-400">Wallet balance: ${wallet.usdcBalance.toFixed(2)}</span>
+                                  </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-4 mb-8">
-                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Duration</label>
+                            <div className="space-y-5 p-6">
+                                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                                    <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-500">Duration</label>
                                     <div className="flex items-center justify-between">
                                         <button onClick={() => setDays(Math.max(1, days - 1))} className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600">-</button>
-                                        <span className="font-medium text-gray-900">{days} Days</span>
+                                        <span className="font-medium text-gray-900">{days} {days === 1 ? 'Day' : 'Days'}</span>
                                         <button onClick={() => setDays(days + 1)} className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600">+</button>
                                     </div>
                                 </div>
 
-                                <div className="space-y-3 pt-2">
+                                <div className="space-y-3">
+                                    <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
+                                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">Quote Summary</p>
+                                      <div className="mt-4 space-y-3">
                                     <div className="flex justify-between text-sm text-gray-500">
                                         <span>${listing.dailyRateUsdc} x {days} days</span>
                                         <span>${rentalSubtotal.toFixed(2)}</span>
@@ -254,9 +329,10 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                                         <span className="font-bold text-gray-900">Rental Total</span>
                                         <span className="font-bold text-gray-900 font-mono">${rentalTotal.toFixed(2)}</span>
                                     </div>
-                                    
-                                    {/* Collateral Section */}
-                                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 space-y-2">
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-2 rounded-2xl border border-blue-100 bg-blue-50 p-4">
                                       <div className="flex justify-between items-center">
                                         <div className="flex items-center space-x-1">
                                           <Lock className="w-3 h-3 text-blue-600" />
@@ -267,32 +343,31 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                                       <div className="text-[10px] text-blue-600 leading-snug">
                                         Fully refundable upon return. 
                                         <br />
-                                        <span className="font-semibold">You save ${Math.max(0, listing.collateralValueUsdc - requiredCollateral).toLocaleString()}</span> thanks to your Tier {profile.tier} status.
+                                        <span className="font-semibold">You save ${collateralSavings.toLocaleString()}</span> thanks to your Tier {profile.tier} status.
                                       </div>
                                     </div>
 
-                                    <div className="flex justify-between items-center text-xs text-gray-500 mt-2">
+                                    <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4 text-xs text-gray-500">
                                       <span>Total Upfront Required</span>
-                                      <span className="font-bold text-gray-900 font-mono">${totalUpfrontCost.toFixed(2)}</span>
+                                      <span className="font-bold text-gray-900 font-mono text-sm">${totalUpfrontCost.toFixed(2)}</span>
                                     </div>
                                 </div>
-                            </div>
 
                             {quoteLoading ? (
-                                <button disabled className="w-full bg-gray-100 text-gray-400 font-bold py-4 rounded-xl cursor-wait">
+                                <button disabled className="w-full cursor-wait rounded-xl bg-gray-100 py-4 font-bold text-gray-400">
                                     Calculating Escrow Quote...
                                 </button>
                             ) : canAfford ? (
                                 <button 
                                     onClick={() => setShowBookingModal(true)}
-                                    className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-300 hover:shadow-gray-400 hover:-translate-y-0.5 flex items-center justify-center space-x-2"
+                                    className="flex w-full items-center justify-center space-x-2 rounded-xl bg-black py-4 font-bold text-white shadow-lg shadow-gray-300 transition-all hover:-translate-y-0.5 hover:bg-gray-800 hover:shadow-gray-400"
                                 >
                                     <span>Request to Book</span>
-                                    <ArrowLeft className="w-4 h-4 rotate-180" />
+                                    <ArrowRight className="w-4 h-4" />
                                 </button>
                             ) : (
                                 <div className="space-y-3">
-                                    <button disabled className="w-full bg-gray-100 text-gray-400 font-bold py-4 rounded-xl cursor-not-allowed">
+                                    <button disabled className="w-full cursor-not-allowed rounded-xl bg-gray-100 py-4 font-bold text-gray-400">
                                         Insufficient Balance
                                     </button>
                                     <p className="text-xs text-center text-red-500 font-medium">
@@ -301,13 +376,13 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                                 </div>
                             )}
 
-                            <div className="mt-4 flex items-center justify-center space-x-1.5 text-xs text-gray-400">
+                            <div className="flex items-center justify-center space-x-1.5 text-xs text-gray-400">
                                 <Clock className="w-3 h-3" />
                                 <span>Avg. confirmation time: ~2 mins</span>
                             </div>
                         </div>
+                    </div>
                     )}
-                    
                 </div>
             </div>
         </div>

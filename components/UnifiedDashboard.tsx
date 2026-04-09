@@ -1,7 +1,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import { QrCode, Scan, ArrowRight, Clock, CheckCircle2, Plus, ExternalLink, MessageSquare } from 'lucide-react';
+import { QrCode, Scan, ArrowRight, Clock, CheckCircle2, Plus, ExternalLink, MessageSquare, LayoutDashboard, Boxes, ShieldCheck } from 'lucide-react';
 import AddListingModal from './AddListingModal';
 import TransactionSuccessDialog from './TransactionSuccessDialog';
 import type { CreateListingRequest } from '../shared/contracts';
@@ -9,6 +9,8 @@ import type { Listing, Rental } from '../types';
 
 interface UnifiedDashboardProps {
   initialTab?: 'renting' | 'lending';
+  primaryRole?: 'renter' | 'owner';
+  myListingsCount?: number;
   rentingRentals: Rental[];
   lendingRentals: Rental[];
   onAcceptRental: (rentalId: string) => Promise<Rental>;
@@ -31,6 +33,8 @@ type RentalSuccessState = {
 
 const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   initialTab = 'renting',
+  primaryRole = 'renter',
+  myListingsCount = 0,
   rentingRentals,
   lendingRentals,
   onAcceptRental,
@@ -80,14 +84,75 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
     }).then(setQrDataUrl).catch(() => setQrDataUrl(''));
   }, [modalState]);
 
-  const stats = useMemo(() => {
-    const allRentals = [...rentingRentals, ...lendingRentals];
+  const workspace = useMemo(() => {
+    if (activeTab === 'renting') {
+      return {
+        title: 'Renter Workspace',
+        description: 'Track approvals, pickup handoff, active rentals, and returns in one clean flow.',
+        badge: primaryRole === 'renter' ? 'Primary view' : 'Secondary view',
+        sectionTitle: 'Your rental timeline',
+        sectionDescription: 'Everything you need to do as a renter, from approval to return.',
+        emptyTitle: 'No rental activity yet',
+        emptyDescription: 'Once you request an asset, approvals, QR handoff steps, and active rental actions will appear here.',
+        statCards: [
+          {
+            label: 'Awaiting Approval',
+            value: rentingRentals.filter((item) => item.status === 'pending_approval').length,
+            hint: 'Requests waiting for owner approval.',
+            icon: <Clock className="w-5 h-5 text-blue-600" />,
+            iconWrapperClassName: 'bg-blue-50'
+          },
+          {
+            label: 'Ready For Pickup',
+            value: rentingRentals.filter((item) => item.status === 'pending_pickup').length,
+            hint: 'Approved rentals that need handoff.',
+            icon: <QrCode className="w-5 h-5 text-gray-900" />,
+            iconWrapperClassName: 'bg-gray-100'
+          },
+          {
+            label: 'Active Rentals',
+            value: rentingRentals.filter((item) => item.status === 'active').length,
+            hint: 'Assets currently checked out.',
+            icon: <ShieldCheck className="w-5 h-5 text-green-600" />,
+            iconWrapperClassName: 'bg-green-50'
+          }
+        ]
+      };
+    }
+
     return {
-      active: allRentals.filter((item) => item.status === 'active').length,
-      completed: allRentals.filter((item) => item.status === 'completed').length,
-      pendingHandshake: allRentals.filter((item) => item.status === 'pending_approval' || item.status === 'pending_pickup').length
+      title: 'Lister Workspace',
+      description: 'Review booking demand, approve escrow, coordinate handoff, and keep your inventory moving.',
+      badge: primaryRole === 'owner' ? 'Primary view' : 'Secondary view',
+      sectionTitle: 'Fleet operations',
+      sectionDescription: 'Incoming requests and live rental operations for your listed assets.',
+      emptyTitle: 'No fleet requests yet',
+      emptyDescription: 'When renters request one of your assets, approvals and pickup or return verification steps will appear here.',
+      statCards: [
+        {
+          label: 'Live Listings',
+          value: myListingsCount,
+          hint: 'Assets currently published on the marketplace.',
+          icon: <Boxes className="w-5 h-5 text-gray-900" />,
+          iconWrapperClassName: 'bg-gray-100'
+        },
+        {
+          label: 'Needs Approval',
+          value: lendingRentals.filter((item) => item.status === 'pending_approval').length,
+          hint: 'Booking requests waiting for your approval.',
+          icon: <CheckCircle2 className="w-5 h-5 text-blue-600" />,
+          iconWrapperClassName: 'bg-blue-50'
+        },
+        {
+          label: 'Open Handoffs',
+          value: lendingRentals.filter((item) => item.status === 'pending_pickup' || item.status === 'active').length,
+          hint: 'Pickups and returns that still need attention.',
+          icon: <Scan className="w-5 h-5 text-orange-600" />,
+          iconWrapperClassName: 'bg-orange-50'
+        }
+      ]
     };
-  }, [lendingRentals, rentingRentals]);
+  }, [activeTab, lendingRentals, myListingsCount, primaryRole, rentingRentals]);
 
   const handleListingAdded = async (payload: CreateListingRequest) => {
     return onCreateListing(payload);
@@ -141,81 +206,84 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
 
   return (
     <div className="relative mx-auto max-w-5xl space-y-6 px-4 py-5 animate-in fade-in duration-500 sm:px-6 sm:py-6 lg:space-y-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Command Center</h1>
-                <p className="text-gray-500 text-sm mt-1">Manage your infrastructure rentals and fleet status.</p>
+        <div className="rounded-[1.75rem] border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  <LayoutDashboard className="w-3.5 h-3.5 text-verent-green" />
+                  <span>Command Center</span>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{workspace.title}</h1>
+                  <span className="rounded-full border border-verent-green/20 bg-verent-green/[0.06] px-3 py-1 text-xs font-semibold text-verent-green">
+                    {workspace.badge}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-7 text-gray-600 sm:text-base">
+                  {workspace.description}
+                </p>
             </div>
-            
+
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:justify-end">
-                <div className="inline-flex w-full rounded-lg bg-gray-100 p-1 sm:w-auto">
+                <div className="inline-flex w-full rounded-xl bg-gray-100 p-1 sm:w-auto">
                     <button 
                         onClick={() => setActiveTab('renting')}
-                        className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'renting' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'renting' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        Renting
+                        Renter
                     </button>
                     <button 
                         onClick={() => setActiveTab('lending')}
-                        className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'lending' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all sm:flex-none sm:px-6 ${activeTab === 'lending' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        Lending
+                        Lister
                     </button>
                 </div>
                 
-                {/* ADD NEW ITEM CTA - Only visible in Lending Mode */}
                 {activeTab === 'lending' && (
                     <button 
                         onClick={() => setIsAddModalOpen(true)}
                         className="hidden md:flex items-center space-x-2 bg-black text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 transition-all shadow-md hover:shadow-lg shadow-gray-200"
                     >
                         <Plus className="w-4 h-4" />
-                        <span className="text-sm font-medium">Add Item</span>
+                        <span className="text-sm font-medium">Add Listing</span>
                     </button>
                 )}
             </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+              {activeTab === 'renting' ? 'Focused on approvals, pickup, and return steps' : 'Focused on listing performance and fleet operations'}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+              {activeTab === 'renting' ? `${rentingRentals.length} renter records` : `${lendingRentals.length} lister records`}
+            </span>
+          </div>
         </div>
 
-        {/* Status Cards */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+          {workspace.statCards.map((card) => (
+            <div key={card.label} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-start mb-4">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                        <Clock className="w-5 h-5 text-blue-600" />
+                    <div className={`p-2 rounded-lg ${card.iconWrapperClassName}`}>
+                        {card.icon}
                     </div>
-                    <span className="text-2xl font-bold text-gray-900">{stats.active}</span>
+                    <span className="text-2xl font-bold text-gray-900">{card.value}</span>
                 </div>
-                <p className="text-sm font-medium text-gray-900">Active Rentals</p>
-                <p className="text-xs text-gray-500">Live across renting and lending</p>
+                <p className="text-sm font-medium text-gray-900">{card.label}</p>
+                <p className="text-xs text-gray-500">{card.hint}</p>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                     <div className="p-2 bg-green-50 rounded-lg">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">{stats.completed}</span>
-                </div>
-                <p className="text-sm font-medium text-gray-900">Completed</p>
-                <p className="text-xs text-gray-500">Persisted rental history</p>
-            </div>
-             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                     <div className="p-2 bg-orange-50 rounded-lg">
-                        <Scan className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">{stats.pendingHandshake}</span>
-                </div>
-                <p className="text-sm font-medium text-gray-900">Pending Handshake</p>
-                <p className="text-xs text-gray-500">Awaiting approval or code verification</p>
-            </div>
+          ))}
         </div>
 
-        {/* List Section */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
             <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/50 px-4 py-4 sm:px-6">
-                <h3 className="font-semibold text-gray-900">{activeTab === 'renting' ? 'My Active Rentals' : 'Fleet Requests'}</h3>
+                <div>
+                  <h3 className="font-semibold text-gray-900">{workspace.sectionTitle}</h3>
+                  <p className="mt-1 text-xs text-gray-500">{workspace.sectionDescription}</p>
+                </div>
                 
-                {/* Mobile Add Button */}
                 {activeTab === 'lending' && (
                     <button 
                         onClick={() => setIsAddModalOpen(true)}
@@ -228,12 +296,32 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
             </div>
             
             <div className="divide-y divide-gray-50">
-                {rentals.map((rental) => (
+                {rentals.length === 0 ? (
+                  <div className="px-6 py-14 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50">
+                      {activeTab === 'renting' ? <MessageSquare className="h-5 w-5 text-gray-400" /> : <Boxes className="h-5 w-5 text-gray-400" />}
+                    </div>
+                    <h4 className="mt-4 text-base font-semibold text-gray-900">{workspace.emptyTitle}</h4>
+                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">{workspace.emptyDescription}</p>
+                    {activeTab === 'lending' && (
+                      <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="mt-5 inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Create your first listing</span>
+                      </button>
+                    )}
+                  </div>
+                ) : rentals.map((rental) => (
                     <div key={rental.id} className="flex flex-col gap-4 p-4 transition-colors hover:bg-gray-50 sm:p-6 md:flex-row md:items-center md:justify-between">
                         <div className="flex min-w-0 items-start space-x-4">
                             <img src={rental.thumbnail} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-200" />
                             <div className="min-w-0 flex-1">
                                 <h4 className="truncate font-bold text-gray-900">{rental.itemTitle}</h4>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {activeTab === 'renting' ? 'Your renter workflow for this asset' : 'Your lister workflow for this asset'}
+                                </p>
                                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                                     <span>{rental.startDate}</span>
                                     <ArrowRight className="w-3 h-3" />
@@ -267,7 +355,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                                     className="flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900 sm:w-auto"
                                 >
                                     <MessageSquare className="w-4 h-4" />
-                                    <span>Message Owner</span>
+                                    <span>Open Chat</span>
                                 </button>
                             )}
                             {activeTab === 'renting' && rental.status === 'pending_pickup' && (
@@ -276,7 +364,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                                     className="flex w-full items-center justify-center space-x-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto"
                                 >
                                     <QrCode className="w-4 h-4" />
-                                    <span>Show Pickup QR</span>
+                                    <span>Display Pickup QR</span>
                                 </button>
                             )}
                             {activeTab === 'renting' && rental.status === 'active' && (
@@ -285,7 +373,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                                     className="flex w-full items-center justify-center space-x-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto"
                                 >
                                     <QrCode className="w-4 h-4" />
-                                    <span>Show Return QR</span>
+                                    <span>Display Return QR</span>
                                 </button>
                             )}
                             {activeTab === 'lending' && rental.status === 'pending_approval' && (
@@ -301,7 +389,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                                     className="flex w-full items-center justify-center space-x-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto"
                                 >
                                     <CheckCircle2 className="w-4 h-4" />
-                                    <span>Approve Escrow</span>
+                                    <span>Approve Request</span>
                                 </button>
                             )}
                             {activeTab === 'lending' && rental.status === 'pending_pickup' && (
@@ -319,7 +407,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                                   className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 sm:w-auto"
                                 >
                                     <Scan className="w-4 h-4" />
-                                    <span>Scan Return QR</span>
+                                    <span>Confirm Return</span>
                                 </button>
                             )}
                              {rental.status === 'active' && (

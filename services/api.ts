@@ -166,6 +166,12 @@ export async function openConversationApi(listingId: string) {
   });
 }
 
+export async function markConversationReadApi(conversationId: string) {
+  return request<DashboardPayload['conversations'][number]>(`/conversations/${conversationId}/read`, {
+    method: 'POST'
+  });
+}
+
 export async function markNotificationsReadApi() {
   return request<DashboardPayload['notifications']>('/notifications/mark-read', {
     method: 'POST'

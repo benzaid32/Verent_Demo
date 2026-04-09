@@ -10,11 +10,12 @@ interface SidebarProps {
   onSwitchMode: (mode: ViewMode) => void;
   onLogout: () => void;
   walletBalance?: number;
+  unreadMessagesCount?: number;
   isOpen: boolean;
   onClose: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, walletBalance = 0, isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, walletBalance = 0, unreadMessagesCount = 0, isOpen, onClose }) => {
   const navItems = [
     { id: 'explore', icon: Compass, label: 'Explore' },
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -84,9 +85,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, 
               >
                   <item.icon className={`w-4 h-4 ${isActive ? 'text-verent-green' : 'text-gray-400'}`} />
                   <span>{item.label}</span>
-                  {item.id === 'messages' && (
+                  {item.id === 'messages' && unreadMessagesCount > 0 && (
                     <span className="ml-auto bg-verent-green/10 text-verent-green text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      1
+                      {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
                     </span>
                   )}
               </button>
