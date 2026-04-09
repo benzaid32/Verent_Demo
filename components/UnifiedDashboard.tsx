@@ -265,7 +265,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
 
           <div className="mt-5 flex flex-wrap gap-2">
             <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-              {activeTab === 'renting' ? 'Focused on approvals, pickup, and return steps' : 'Focused on listing performance and fleet operations'}
+              {activeTab === 'renting' ? 'Approvals, pickup, and return workflow' : 'Listing performance and fleet operations'}
             </span>
             <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
               {activeTab === 'renting' ? `${rentingRentals.length} renter records` : `${lendingRentals.length} lister records`}
