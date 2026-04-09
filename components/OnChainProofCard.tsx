@@ -10,6 +10,7 @@ interface OnChainProofCardProps {
   confirmedSlot?: number;
   cluster?: string;
   protocolVersion?: string;
+  compact?: boolean;
 }
 
 function shorten(value: string, start = 6, end = 6) {
@@ -26,7 +27,8 @@ const OnChainProofCard: React.FC<OnChainProofCardProps> = ({
   accountValue,
   confirmedSlot,
   cluster,
-  protocolVersion
+  protocolVersion,
+  compact = false
 }) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -58,8 +60,8 @@ const OnChainProofCard: React.FC<OnChainProofCardProps> = ({
     const stringValue = String(value);
 
     return (
-      <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-        <div className="mb-2 flex items-center justify-between gap-3">
+      <div className={`rounded-xl border border-gray-200 bg-gray-50/60 ${compact ? 'p-3' : 'p-4'}`}>
+        <div className={`flex items-center justify-between gap-3 ${compact ? 'mb-1.5' : 'mb-2'}`}>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
             {icon}
             <span>{label}</span>
@@ -68,14 +70,14 @@ const OnChainProofCard: React.FC<OnChainProofCardProps> = ({
             <button
               type="button"
               onClick={() => void copyValue(label, stringValue)}
-              className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 hover:text-gray-900"
+              className={`inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white font-medium text-gray-600 hover:text-gray-900 ${compact ? 'px-2 py-1 text-[10px]' : 'px-2 py-1 text-[11px]'}`}
             >
               <Copy className="h-3 w-3" />
               <span>{copiedField === label ? 'Copied' : 'Copy'}</span>
             </button>
           )}
         </div>
-        <div className={`break-all text-sm text-gray-900 ${monospace ? 'font-mono' : ''}`}>
+        <div className={`break-all text-gray-900 ${monospace ? 'font-mono' : ''} ${compact ? 'text-[13px]' : 'text-sm'}`}>
           {stringValue}
         </div>
       </div>
@@ -83,21 +85,21 @@ const OnChainProofCard: React.FC<OnChainProofCardProps> = ({
   };
 
   return (
-    <section className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <section className={`rounded-2xl border border-emerald-100 bg-white shadow-sm ${compact ? 'p-4' : 'p-6'}`}>
+      <div className={`flex flex-wrap items-center justify-between gap-3 ${compact ? 'mb-4' : 'mb-5'}`}>
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+          <div className={`inline-flex items-center gap-2 rounded-full bg-emerald-50 font-semibold text-emerald-700 ${compact ? 'mb-1.5 px-2.5 py-1 text-[11px]' : 'mb-2 px-3 py-1 text-xs'}`}>
             <CheckCircle2 className="h-4 w-4" />
             <span>Confirmed On Solana</span>
           </div>
-          <h3 className="text-lg font-bold text-gray-900">On-Chain Proof</h3>
+          <h3 className={`font-bold text-gray-900 ${compact ? 'text-base' : 'text-lg'}`}>On-Chain Proof</h3>
         </div>
         {explorerUrl && (
           <a
             href={explorerUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            className={`inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white font-medium text-gray-700 hover:text-gray-900 ${compact ? 'px-3 py-2 text-xs' : 'px-3 py-2 text-sm'}`}
           >
             <span>View on Explorer</span>
             <ExternalLink className="h-4 w-4" />
@@ -105,7 +107,7 @@ const OnChainProofCard: React.FC<OnChainProofCardProps> = ({
         )}
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2 text-xs">
+      <div className={`flex flex-wrap gap-2 text-xs ${compact ? 'mb-3' : 'mb-4'}`}>
         <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 font-medium text-gray-600">
           Cluster: {cluster || 'devnet'}
         </span>
@@ -127,7 +129,7 @@ const OnChainProofCard: React.FC<OnChainProofCardProps> = ({
         {renderField('Program ID', programId, <FileCode2 className="h-3.5 w-3.5" />)}
       </div>
 
-      <p className="mt-4 text-xs text-gray-500">
+      <p className={`text-xs text-gray-500 ${compact ? 'mt-3' : 'mt-4'}`}>
         Proof links and identifiers are pulled from the confirmed transaction and persisted listing metadata.
       </p>
     </section>

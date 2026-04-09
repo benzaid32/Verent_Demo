@@ -10,7 +10,6 @@ import MyListings from './components/MyListings';
 import Settings from './components/Settings';
 import Messages from './components/Messages';
 import Staking from './components/Staking';
-import AIAssistant from './components/AIAssistant';
 import NotificationsPopover from './components/NotificationsPopover';
 import UserMenu from './components/UserMenu';
 import { ViewMode, Listing } from './types';
@@ -315,7 +314,7 @@ const App: React.FC = () => {
             )}
 
             {currentView === 'staking' && (
-                <Staking wallet={wallet} profile={profile} onStake={stake} />
+                <Staking wallet={wallet} profile={profile} onStake={stake} onRefresh={refresh} />
             )}
 
             {currentView === 'messages' && (
@@ -341,6 +340,7 @@ const App: React.FC = () => {
                   onCompleteRental={completeRentalById}
                   onCreateListing={createListing}
                   onMessageOwner={handleMessageOwnerForListing}
+                  onRefresh={refresh}
                 />
             )}
 
@@ -352,9 +352,6 @@ const App: React.FC = () => {
                 <Settings profile={profile} notifications={notifications} onSave={updateProfileSettings} />
             )}
         </div>
-
-        {/* Global AI Assistant - Always Available */}
-        <AIAssistant devices={devices} />
       </main>
     </div>
   );

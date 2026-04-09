@@ -18,6 +18,7 @@ interface UnifiedDashboardProps {
   onCompleteRental: (rentalId: string, code: string) => Promise<Rental>;
   onCreateListing: (payload: CreateListingRequest) => Promise<Listing>;
   onMessageOwner: (listingId: string) => Promise<void>;
+  onRefresh: () => Promise<void>;
 }
 
 type RentalModalState =
@@ -41,7 +42,8 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   onConfirmPickup,
   onCompleteRental,
   onCreateListing,
-  onMessageOwner
+  onMessageOwner,
+  onRefresh
 }) => {
   const isRoleLocked = primaryRole === 'owner' || primaryRole === 'renter';
   const [activeTab, setActiveTab] = useState<'renting' | 'lending'>(initialTab);
@@ -184,6 +186,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
     try {
       if (modalState.type === 'confirm_pickup') {
         const rental = await onConfirmPickup(modalState.rental.id, verificationCode.trim().toUpperCase());
+        await onRefresh();
         closeModal();
         showSuccessState(
           'Pickup Confirmed On-Chain',
@@ -192,6 +195,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
         );
       } else {
         const rental = await onCompleteRental(modalState.rental.id, verificationCode.trim().toUpperCase());
+        await onRefresh();
         closeModal();
         showSuccessState(
           'Return Settled On-Chain',
@@ -387,6 +391,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                                 <button
                                     onClick={async () => {
                                       const nextRental = await onAcceptRental(rental.id);
+                                      await onRefresh();
                                       showSuccessState(
                                         'Escrow Approved On-Chain',
                                         'This booking request is now approved on Solana and the renter can move into pickup verification.',
@@ -506,7 +511,10 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
           isOpen={Boolean(successState)}
           title={successState?.title || 'Confirmed On-Chain'}
           description={successState?.description || 'This protocol action has been confirmed on Solana.'}
-          onClose={() => setSuccessState(null)}
+          onClose={() => {
+            setSuccessState(null);
+            void onRefresh();
+          }}
           closeLabel="Back to Dashboard"
           signature={successState?.rental.confirmedSignature || successState?.rental.transactionHash}
           programId={successState?.rental.programId}

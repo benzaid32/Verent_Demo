@@ -277,6 +277,21 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
     }
   };
 
+  const formatTransactionLabel = (type: Transaction['type']) =>
+    type
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+
+  const isPositiveTransaction = (type: Transaction['type']) =>
+    type === 'deposit'
+    || type === 'claim_rewards'
+    || type === 'claim_yield'
+    || type === 'finalize_unstake';
+
+  const formatTransactionHash = (hash: string) =>
+    hash.length > 16 ? `${hash.slice(0, 8)}...${hash.slice(-8)}` : hash;
+
   return (
     <div className="mx-auto mb-12 max-w-5xl space-y-6 px-4 py-5 animate-in fade-in duration-500 sm:px-6 sm:py-6 lg:space-y-8">
       {/* Header & Balance */}
@@ -423,48 +438,53 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
 
             {/* WITHDRAW VIEW */}
             {activeTab === 'withdraw' && (
-                <div className="max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="mb-8">
+                <div className="mx-auto max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="mb-6 sm:mb-8">
                         <h2 className="text-xl font-bold text-gray-900">Withdraw Funds</h2>
                         <p className="text-sm text-gray-500 mt-1">Transfer assets to an external Solana wallet.</p>
                     </div>
 
                     {withdrawStatus === 'success' ? (
-                        <div className="bg-green-50 border border-green-100 rounded-xl p-8 text-center space-y-4">
-                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
-                                <CheckCircle2 className="w-8 h-8" />
+                        <div className="rounded-xl border border-green-100 bg-green-50 p-5 text-center space-y-3 sm:p-6">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
+                                <CheckCircle2 className="w-6 h-6" />
                             </div>
-                            <h3 className="text-lg font-bold text-green-900">Transaction Successful</h3>
-                            <p className="text-sm text-green-700">Your transfer was confirmed on Solana and detailed proof is available in the on-chain dialog.</p>
+                            <h3 className="text-base font-bold text-green-900 sm:text-lg">Transaction Successful</h3>
+                            <p className="text-sm leading-6 text-green-700">Your transfer was confirmed on Solana and the full proof is shown in the confirmation sheet.</p>
                             <button 
                                 onClick={() => { setWithdrawStatus('idle'); setWithdrawAmount(''); setWithdrawAddress(''); setWithdrawProof(null); }}
-                                className="mt-4 bg-white border border-green-200 text-green-700 px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-50"
+                                className="mt-2 rounded-lg border border-green-200 bg-white px-5 py-2.5 text-sm font-medium text-green-700 hover:bg-green-50"
                             >
                                 Make Another Transfer
                             </button>
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Asset</label>
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+                            <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 sm:p-5">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-gray-700">Asset</label>
+                                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-gray-500 shadow-sm">
+                                        Choose network token
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                                     <button 
                                         onClick={() => setWithdrawCurrency('SOL')}
-                                        className={`px-4 py-3 rounded-xl border text-sm font-medium flex items-center justify-center space-x-2 transition-all ${withdrawCurrency === 'SOL' ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                                        className={`flex min-h-[52px] items-center justify-center space-x-2 rounded-xl border px-3 py-3 text-sm font-medium transition-all ${withdrawCurrency === 'SOL' ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
                                     >
                                         <span className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500"></span>
                                         <span>SOL</span>
                                     </button>
                                     <button 
                                         onClick={() => setWithdrawCurrency('USDC')}
-                                        className={`px-4 py-3 rounded-xl border text-sm font-medium flex items-center justify-center space-x-2 transition-all ${withdrawCurrency === 'USDC' ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                                        className={`flex min-h-[52px] items-center justify-center space-x-2 rounded-xl border px-3 py-3 text-sm font-medium transition-all ${withdrawCurrency === 'USDC' ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
                                     >
                                         <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                                         <span>USDC</span>
                                     </button>
                                     <button 
                                         onClick={() => setWithdrawCurrency('VRNT')}
-                                        className={`px-4 py-3 rounded-xl border text-sm font-medium flex items-center justify-center space-x-2 transition-all ${withdrawCurrency === 'VRNT' ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                                        className={`flex min-h-[52px] items-center justify-center space-x-2 rounded-xl border px-3 py-3 text-sm font-medium transition-all ${withdrawCurrency === 'VRNT' ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
                                     >
                                         <span className="w-2 h-2 rounded-full bg-verent-green"></span>
                                         <span>VRNT</span>
@@ -472,74 +492,94 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Recipient Address</label>
-                                <input 
-                                    type="text" 
-                                    value={withdrawAddress}
-                                    onChange={(e) => setWithdrawAddress(e.target.value)}
-                                    placeholder="Enter Solana address (e.g. 8xY...)"
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-verent-green/20 focus:border-verent-green outline-none font-mono text-sm"
-                                />
-                            </div>
+                            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                                <div className="space-y-5">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold uppercase tracking-wider text-gray-700">Recipient Address</label>
+                                        <input 
+                                            type="text" 
+                                            value={withdrawAddress}
+                                            onChange={(e) => setWithdrawAddress(e.target.value)}
+                                            placeholder="Enter Solana address (e.g. 8xY...)"
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 font-mono text-sm outline-none transition focus:border-verent-green focus:bg-white focus:ring-2 focus:ring-verent-green/20"
+                                        />
+                                        <p className="text-xs leading-5 text-gray-500">Double-check the wallet before sending. Blockchain transfers cannot be reversed.</p>
+                                    </div>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between">
-                                    <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Amount</label>
-                                    <span className="text-xs text-gray-500">
-                                        Available: <span className="font-medium text-gray-900">{
-                                            withdrawCurrency === 'SOL' ? wallet.solBalance.toFixed(4) :
-                                            withdrawCurrency === 'USDC' ? wallet.usdcBalance.toFixed(2) :
-                                            wallet.vrntBalance.toLocaleString()
-                                        } {withdrawCurrency}</span>
-                                    </span>
-                                </div>
-                                <div className="relative">
-                                    <input 
-                                        type="number" 
-                                        value={withdrawAmount}
-                                        onChange={(e) => setWithdrawAmount(e.target.value)}
-                                        placeholder="0.00"
-                                        className="w-full pl-4 pr-20 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-verent-green/20 focus:border-verent-green outline-none font-mono text-sm"
-                                    />
-                                    <button 
-                                        onClick={() => setWithdrawAmount(
-                                            withdrawCurrency === 'SOL' ? (wallet.solBalance - 0.00001).toFixed(4) :
-                                            withdrawCurrency === 'USDC' ? wallet.usdcBalance.toString() :
-                                            wallet.vrntBalance.toString()
-                                        )}
-                                        className="absolute right-2 top-2 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-verent-green hover:bg-gray-50 uppercase"
-                                    >
-                                        Max
-                                    </button>
+                                    <div className="space-y-2">
+                                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                            <label className="text-xs font-semibold uppercase tracking-wider text-gray-700">Amount</label>
+                                            <span className="text-xs text-gray-500">
+                                                Available:{' '}
+                                                <span className="font-medium text-gray-900">{
+                                                    withdrawCurrency === 'SOL' ? wallet.solBalance.toFixed(4) :
+                                                    withdrawCurrency === 'USDC' ? wallet.usdcBalance.toFixed(2) :
+                                                    wallet.vrntBalance.toLocaleString()
+                                                } {withdrawCurrency}</span>
+                                            </span>
+                                        </div>
+                                        <div className="relative">
+                                            <input 
+                                                type="number" 
+                                                value={withdrawAmount}
+                                                onChange={(e) => setWithdrawAmount(e.target.value)}
+                                                placeholder="0.00"
+                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-4 pr-20 font-mono text-sm outline-none transition focus:border-verent-green focus:bg-white focus:ring-2 focus:ring-verent-green/20"
+                                            />
+                                            <button 
+                                                onClick={() => setWithdrawAmount(
+                                                    withdrawCurrency === 'SOL' ? (wallet.solBalance - 0.00001).toFixed(4) :
+                                                    withdrawCurrency === 'USDC' ? wallet.usdcBalance.toString() :
+                                                    wallet.vrntBalance.toString()
+                                                )}
+                                                className="absolute right-2 top-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] font-bold uppercase text-verent-green hover:bg-gray-50"
+                                            >
+                                                Max
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Fee Summary */}
-                            <div className="bg-gray-50 rounded-xl p-4 space-y-2 border border-gray-100">
-                                <div className="flex justify-between text-xs text-gray-500">
+                            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-700">Transfer Summary</p>
+                                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-gray-500 shadow-sm">
+                                        {withdrawCurrency}
+                                    </span>
+                                </div>
+                                <div className="space-y-2">
+                                <div className="flex justify-between gap-3 text-xs text-gray-500">
                                     <span>Network Fee (Est.)</span>
                                     <span>~0.000005 SOL</span>
                                 </div>
-                                <div className="border-t border-gray-200 pt-2 flex justify-between text-sm font-bold text-gray-900">
+                                <div className="flex justify-between gap-3 text-xs text-gray-500">
+                                    <span>Recipient</span>
+                                    <span className="max-w-[55%] truncate font-mono text-right text-gray-700">
+                                        {withdrawAddress || 'Not entered'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between gap-3 border-t border-gray-200 pt-2 text-sm font-bold text-gray-900">
                                     <span>Total Deducted</span>
                                     <span>
                                         {withdrawAmount ? (Number(withdrawAmount) + (withdrawCurrency === 'SOL' ? 0.000005 : 0)).toFixed(6) : '0.00'} {withdrawCurrency}
                                     </span>
                                 </div>
+                                </div>
                             </div>
 
                             {errorMessage && (
-                                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-center space-x-2">
-                                    <AlertCircle className="w-4 h-4" />
-                                    <span>{errorMessage}</span>
+                                <div className="flex items-start space-x-2 rounded-xl bg-red-50 p-3 text-sm text-red-600">
+                                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                                    <span className="leading-6">{errorMessage}</span>
                                 </div>
                             )}
 
                             <button 
                                 onClick={handleWithdraw}
                                 disabled={withdrawStatus !== 'idle'}
-                                className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg shadow-gray-200"
+                                className="flex min-h-[56px] w-full items-center justify-center space-x-2 rounded-xl bg-black py-4 font-bold text-white shadow-lg shadow-gray-200 transition-all hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {withdrawStatus === 'idle' && (
                                     <>
@@ -580,51 +620,70 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                     </div>
 
                     <div className="space-y-2">
-                        {transactions.map((tx) => (
-                            <div key={tx.id} className="group rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50">
-                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="flex items-center space-x-4 min-w-0">
-                                        <div className={`p-3 rounded-full ${
-                                            tx.type === 'deposit' ? 'bg-green-100 text-green-600' :
-                                            tx.type === 'withdraw' ? 'bg-gray-100 text-gray-600' :
-                                            tx.type === 'stake' ? 'bg-purple-100 text-purple-600' :
-                                            tx.type === 'claim_rewards' || tx.type === 'claim_yield' ? 'bg-yellow-100 text-yellow-600' :
-                                            tx.type === 'request_unstake' || tx.type === 'finalize_unstake' || tx.type === 'unstake' ? 'bg-orange-100 text-orange-600' :
-                                            'bg-blue-50 text-blue-600'
-                                        }`}>
-                                            {tx.type === 'deposit' ? <ArrowDownLeft className="w-5 h-5" /> : 
-                                             tx.type === 'withdraw' ? <ArrowUpRight className="w-5 h-5" /> :
-                                             tx.type === 'stake' ? <Lock className="w-5 h-5" /> :
-                                             tx.type === 'claim_rewards' || tx.type === 'claim_yield' ? <Sparkles className="w-5 h-5" /> :
-                                             <RefreshCw className="w-5 h-5" />}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-bold text-gray-900 capitalize">{tx.type.replace('_', ' ')}</p>
-                                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-                                                <span>{tx.date}</span>
-                                                <span>•</span>
-                                                <span className="font-mono break-all">{tx.hash}</span>
+                        {transactions.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-5 py-10 text-center">
+                                <p className="text-sm font-medium text-gray-900">No wallet activity yet</p>
+                                <p className="mt-1 text-sm text-gray-500">Deposits, withdrawals, and staking actions will appear here.</p>
+                            </div>
+                        ) : transactions.map((tx) => (
+                            <div key={tx.id} className="group rounded-2xl border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50 sm:p-5">
+                                <div className="flex items-start gap-3 sm:gap-4">
+                                    <div className={`rounded-2xl p-3 ${
+                                        tx.type === 'deposit' ? 'bg-green-100 text-green-600' :
+                                        tx.type === 'withdraw' ? 'bg-gray-100 text-gray-600' :
+                                        tx.type === 'stake' ? 'bg-purple-100 text-purple-600' :
+                                        tx.type === 'claim_rewards' || tx.type === 'claim_yield' ? 'bg-yellow-100 text-yellow-600' :
+                                        tx.type === 'request_unstake' || tx.type === 'finalize_unstake' || tx.type === 'unstake' ? 'bg-orange-100 text-orange-600' :
+                                        'bg-blue-50 text-blue-600'
+                                    }`}>
+                                        {tx.type === 'deposit' ? <ArrowDownLeft className="w-5 h-5" /> : 
+                                         tx.type === 'withdraw' ? <ArrowUpRight className="w-5 h-5" /> :
+                                         tx.type === 'stake' ? <Lock className="w-5 h-5" /> :
+                                         tx.type === 'claim_rewards' || tx.type === 'claim_yield' ? <Sparkles className="w-5 h-5" /> :
+                                         <RefreshCw className="w-5 h-5" />}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1 space-y-3">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-gray-900">{formatTransactionLabel(tx.type)}</p>
+                                                <p className="mt-1 text-xs text-gray-500">{tx.date}</p>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                                                <span className={`font-mono text-sm font-semibold ${isPositiveTransaction(tx.type) ? 'text-verent-green' : 'text-gray-900'}`}>
+                                                    {isPositiveTransaction(tx.type) ? '+' : '-'}{tx.amount} {tx.currency}
+                                                </span>
+                                                <span className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase ${
+                                                    tx.status === 'confirmed' || tx.status === 'completed' ? 'border-green-100 bg-green-50 text-green-700' :
+                                                    tx.status === 'pending' ? 'border-yellow-100 bg-yellow-50 text-yellow-700' :
+                                                    'border-red-100 bg-red-50 text-red-700'
+                                                }`}>
+                                                    {tx.status}
+                                                </span>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="text-left sm:text-right">
-                                        <p className={`font-mono font-medium ${tx.type === 'deposit' || tx.type === 'claim_rewards' || tx.type === 'claim_yield' || tx.type === 'finalize_unstake' ? 'text-verent-green' : 'text-gray-900'}`}>
-                                            {tx.type === 'deposit' || tx.type === 'claim_rewards' || tx.type === 'claim_yield' || tx.type === 'finalize_unstake' ? '+' : '-'}{tx.amount} {tx.currency}
-                                        </p>
-                                        <div className="flex items-center justify-end space-x-2 mt-1">
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded border uppercase font-bold ${
-                                                tx.status === 'confirmed' || tx.status === 'completed' ? 'bg-green-50 text-green-700 border-green-100' :
-                                                tx.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
-                                                'bg-red-50 text-red-700 border-red-100'
-                                            }`}>
-                                                {tx.status}
-                                            </span>
+
+                                        <div className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">Transaction Hash</p>
+                                                <p className="mt-1 truncate font-mono text-xs text-gray-700 sm:hidden">{formatTransactionHash(tx.hash)}</p>
+                                                <p className="mt-1 hidden truncate font-mono text-xs text-gray-700 sm:block">{tx.hash}</p>
+                                            </div>
                                             {tx.explorerUrl ? (
-                                              <a href={tx.explorerUrl} target="_blank" rel="noreferrer" className="text-gray-300 group-hover:text-gray-500">
-                                                <ExternalLink className="w-3 h-3 cursor-pointer" />
+                                              <a
+                                                href={tx.explorerUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex items-center gap-1 self-start rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:border-gray-300 hover:text-gray-900 sm:self-center"
+                                              >
+                                                <span>View</span>
+                                                <ExternalLink className="h-3 w-3" />
                                               </a>
                                             ) : (
-                                              <ExternalLink className="w-3 h-3 text-gray-300 group-hover:text-gray-500 cursor-pointer" />
+                                              <span className="inline-flex items-center gap-1 self-start rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-400 sm:self-center">
+                                                <span>No link</span>
+                                                <ExternalLink className="h-3 w-3" />
+                                              </span>
                                             )}
                                         </div>
                                     </div>
@@ -675,7 +734,10 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
         isOpen={Boolean(withdrawProof)}
         title="Withdrawal Confirmed On-Chain"
         description="This transfer has been confirmed on Solana devnet and the signature below is the proof persisted for your wallet activity."
-        onClose={() => setWithdrawProof(null)}
+        onClose={() => {
+          setWithdrawProof(null);
+          void onRefresh();
+        }}
         closeLabel="Continue"
         signature={withdrawProof?.signature}
         accountLabel="Recipient Wallet"

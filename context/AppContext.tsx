@@ -418,6 +418,7 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       const nextRental = mapRental(rental);
       setLendingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
       setRentingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
+      await hydrate();
       return nextRental;
     },
     confirmPickupById: async (rentalId, code) => {
@@ -448,6 +449,7 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       const nextRental = mapRental(rental);
       setLendingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
       setRentingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
+      await hydrate();
       return nextRental;
     },
     completeRentalById: async (rentalId, code) => {
@@ -501,6 +503,7 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       const nextRental = mapRental(rental);
       setLendingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
       setRentingRentals((prev) => prev.map((item) => (item.id === rentalId ? nextRental : item)));
+      await hydrate();
       return nextRental;
     },
     openConversationForListing: async (listingId) => {

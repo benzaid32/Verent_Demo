@@ -8,6 +8,7 @@ interface StakingProps {
   wallet: WalletState;
   profile: User;
   onStake: (amount: number | undefined, action: 'stake' | 'request_unstake' | 'finalize_unstake' | 'claim_rewards') => Promise<{ transactionHash: string; explorerUrl: string; confirmedSlot?: number }>;
+  onRefresh: () => Promise<void>;
 }
 
 type StakingSuccessState = {
@@ -17,7 +18,7 @@ type StakingSuccessState = {
   confirmedSlot?: number;
 } | null;
 
-const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
+const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake, onRefresh }) => {
   const [activeTab, setActiveTab] = useState<'stake' | 'unstake'>('stake');
   const [amount, setAmount] = useState('');
   const [status, setStatus] = useState<'idle' | 'approving' | 'confirming' | 'success'>('idle');
@@ -254,12 +255,12 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
                       </div>
 
                       {status === 'success' ? (
-                           <div className="bg-green-50 border border-green-100 rounded-xl p-6 text-center animate-in zoom-in duration-300">
-                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                           <div className="animate-in zoom-in rounded-xl border border-green-100 bg-green-50 p-5 text-center duration-300 sm:p-6">
+                                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-green-100">
                                     <CheckCircle2 className="w-6 h-6 text-green-600" />
                                 </div>
-                                <h3 className="text-lg font-bold text-green-900">Transaction Successful</h3>
-                                <p className="text-sm text-green-700">Your balance has been updated on-chain.</p>
+                                <h3 className="text-base font-bold text-green-900 sm:text-lg">Transaction Successful</h3>
+                                <p className="text-sm leading-6 text-green-700">Your staking balance has been updated on-chain.</p>
                            </div>
                       ) : (
                           <button 
@@ -391,7 +392,10 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake }) => {
         isOpen={Boolean(successState)}
         title={successState?.title || 'Confirmed On-Chain'}
         description={successState?.description || 'This staking action has been confirmed on Solana.'}
-        onClose={() => setSuccessState(null)}
+        onClose={() => {
+          setSuccessState(null);
+          void onRefresh();
+        }}
         closeLabel="Back to Safety Module"
         signature={successState?.signature}
         accountLabel="Stake Position PDA"
