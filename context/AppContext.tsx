@@ -65,6 +65,71 @@ function mapRental(rental: DashboardPayload['rentingRentals'][number]): Rental {
   };
 }
 
+function getIncomingUnreadCountFromMessages(messages: Conversation['messages'], currentUserId: string) {
+  return messages.filter((message) => message.senderId !== currentUserId && !message.isRead).length;
+}
+
+function mergeConversationUpdate(previous: Conversation[], nextConversation: Conversation, currentUserId: string) {
+  return previous.map((item) => (
+    item.id === nextConversation.id || item.participantId === nextConversation.participantId
+      ? {
+          ...nextConversation,
+          unreadCount: getIncomingUnreadCountFromMessages(nextConversation.messages, currentUserId)
+        }
+      : item
+  ));
+}
+
+function applyConversationReadState(previous: Conversation[], conversationId: string, currentUserId: string, shouldBeUnread: boolean) {
+  const targetConversation = previous.find((item) => item.id === conversationId);
+  if (!targetConversation) {
+    return previous;
+  }
+
+  return previous.map((item) => {
+    if (item.id !== conversationId && item.participantId !== targetConversation.participantId) {
+      return item;
+    }
+
+    if (!shouldBeUnread) {
+      const messages = item.messages.map((message) => (
+        message.senderId === currentUserId
+          ? message
+          : { ...message, isRead: true }
+      ));
+      return {
+        ...item,
+        messages,
+        unreadCount: 0
+      };
+    }
+
+    const latestIncomingIndex = [...item.messages]
+      .map((message, index) => ({ message, index }))
+      .filter(({ message }) => message.senderId !== currentUserId)
+      .at(-1)?.index;
+
+    if (latestIncomingIndex === undefined) {
+      return {
+        ...item,
+        unreadCount: 0
+      };
+    }
+
+    const messages = item.messages.map((message, index) => (
+      index === latestIncomingIndex
+        ? { ...message, isRead: false }
+        : message
+    ));
+
+    return {
+      ...item,
+      messages,
+      unreadCount: getIncomingUnreadCountFromMessages(messages, currentUserId)
+    };
+  });
+}
+
 export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const { logout: privyLogout } = usePrivy();
   const { wallets: embeddedWallets } = useWallets();
@@ -454,20 +519,20 @@ export const AppProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
       setConversations((prev) => prev.map((item) => (item.id === conversationId ? conversation : item)));
     },
     markConversationRead: async (conversationId) => {
+      if (!profile) {
+        throw new Error('Missing active profile');
+      }
+      setConversations((prev) => applyConversationReadState(prev, conversationId, profile.id, false));
       const conversation = await markConversationReadApi(conversationId);
-      setConversations((prev) => prev.map((item) => (
-        item.id === conversation.id || item.participantId === conversation.participantId
-          ? conversation
-          : item
-      )));
+      setConversations((prev) => mergeConversationUpdate(prev, conversation, profile.id));
     },
     markConversationUnread: async (conversationId) => {
+      if (!profile) {
+        throw new Error('Missing active profile');
+      }
+      setConversations((prev) => applyConversationReadState(prev, conversationId, profile.id, true));
       const conversation = await markConversationUnreadApi(conversationId);
-      setConversations((prev) => prev.map((item) => (
-        item.id === conversation.id || item.participantId === conversation.participantId
-          ? conversation
-          : item
-      )));
+      setConversations((prev) => mergeConversationUpdate(prev, conversation, profile.id));
     },
     markNotificationsRead: async () => {
       const nextNotifications = await markNotificationsReadApi();

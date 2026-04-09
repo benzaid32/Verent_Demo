@@ -60,7 +60,13 @@ const App: React.FC = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const unreadNotifications = useMemo(() => notifications.filter((item) => !item.isRead).length, [notifications]);
-  const unreadMessagesCount = useMemo(() => conversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0), [conversations]);
+  const unreadMessagesCount = useMemo(
+    () => conversations.reduce(
+      (sum, conversation) => sum + conversation.messages.filter((message) => message.senderId !== profile?.id && !message.isRead).length,
+      0
+    ),
+    [conversations, profile?.id]
+  );
   const isAuthenticated = Boolean(profile);
   const userRole = profile?.role === 'both' ? 'owner' : profile?.role ?? 'renter';
   const defaultAuthenticatedView: ViewMode = userRole === 'owner' ? 'dashboard' : 'explore';

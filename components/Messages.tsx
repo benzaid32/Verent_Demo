@@ -18,6 +18,9 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
   const [menuConversationId, setMenuConversationId] = useState<string | null>(null);
   const activeConversation = conversations.find(c => c.id === activeConvId) ?? conversations[0];
 
+  const getUnreadCount = (conversation: Conversation) =>
+    conversation.messages.filter((message) => message.senderId !== currentUserId && !message.isRead).length;
+
   const formatRentalStatus = (status?: Conversation['contextRentalStatus']) => {
     if (!status) {
       return null;
@@ -45,11 +48,11 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
   }, [activeConversation]);
 
   useEffect(() => {
-    if (!activeConversation?.id || activeConversation.unreadCount <= 0) {
+    if (!activeConversation?.id || getUnreadCount(activeConversation) <= 0) {
       return;
     }
     void onMarkConversationRead(activeConversation.id);
-  }, [activeConversation?.id, activeConversation?.unreadCount, onMarkConversationRead]);
+  }, [activeConversation, onMarkConversationRead]);
 
   useEffect(() => {
     if (!menuConversationId) {
@@ -79,94 +82,107 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {conversations.map((conv) => (
-            <button
-              key={conv.id}
-              onClick={() => {
-                setActiveConvId(conv.id);
-                setIsMobileThreadOpen(true);
-              }}
-              className={`w-full text-left p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors flex items-start space-x-3 ${activeConvId === conv.id ? 'bg-gray-50 border-l-4 border-l-verent-green' : 'border-l-4 border-l-transparent'}`}
-            >
-              <div className="relative">
-                <img src={conv.participantAvatar} alt={conv.participantName} className="w-10 h-10 rounded-full object-cover" />
-                {conv.unreadCount > 0 && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-verent-green rounded-full border-2 border-white"></div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline mb-1">
-                  <span className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
-                    {conv.participantName}
-                  </span>
-                  <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">{conv.lastMessageDate}</span>
-                </div>
-                <p className={`text-xs truncate ${conv.unreadCount > 0 ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>
-                   {conv.messages[conv.messages.length - 1]?.senderId === currentUserId && 'You: '}{conv.lastMessage}
-                </p>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  {conv.contextListingTitle && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-500 font-medium">
-                      {conv.contextListingTitle}
-                    </span>
-                  )}
-                  {conv.contextRentalStatus && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-[10px] text-blue-700 font-medium capitalize">
-                      {formatRentalStatus(conv.contextRentalStatus)}
-                    </span>
-                  )}
-                  {conv.unreadCount > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-verent-green/10 px-2 py-0.5 text-[10px] font-semibold text-verent-green">
-                      Unread
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="relative flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setMenuConversationId((current) => current === conv.id ? null : conv.id);
-                  }}
-                  className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-gray-600"
-                  aria-label="Conversation actions"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-                {menuConversationId === conv.id && (
-                  <div
-                    className="absolute right-0 top-8 z-20 w-36 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
-                    onClick={(event) => event.stopPropagation()}
+          {conversations.map((conv) => {
+            const unreadCount = getUnreadCount(conv);
+            return (
+              <div
+                key={conv.id}
+                className={`border-b border-gray-50 transition-colors hover:bg-gray-50 ${activeConvId === conv.id ? 'bg-gray-50 border-l-4 border-l-verent-green' : 'border-l-4 border-l-transparent'}`}
+              >
+                <div className="flex items-start gap-3 p-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveConvId(conv.id);
+                      setIsMobileThreadOpen(true);
+                    }}
+                    className="flex min-w-0 flex-1 items-start space-x-3 text-left"
                   >
-                    {conv.unreadCount > 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void onMarkConversationRead(conv.id);
-                          setMenuConversationId(null);
-                        }}
-                        className="w-full px-3 py-2.5 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    <div className="relative">
+                      <img src={conv.participantAvatar} alt={conv.participantName} className="w-10 h-10 rounded-full object-cover" />
+                      {unreadCount > 0 && (
+                        <div className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-white bg-verent-green px-1 text-[9px] font-bold text-white">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="mb-1 flex justify-between items-baseline">
+                        <span className={`text-sm truncate ${unreadCount > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                          {conv.participantName}
+                        </span>
+                        <span className="ml-2 whitespace-nowrap text-[10px] text-gray-400">{conv.lastMessageDate}</span>
+                      </div>
+                      <p className={`text-xs truncate ${unreadCount > 0 ? 'text-gray-800 font-medium' : 'text-gray-500'}`}>
+                        {conv.messages[conv.messages.length - 1]?.senderId === currentUserId && 'You: '}{conv.lastMessage}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {conv.contextListingTitle && (
+                          <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                            {conv.contextListingTitle}
+                          </span>
+                        )}
+                        {conv.contextRentalStatus && (
+                          <span className="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium capitalize text-blue-700">
+                            {formatRentalStatus(conv.contextRentalStatus)}
+                          </span>
+                        )}
+                        {unreadCount > 0 && (
+                          <span className="inline-flex items-center rounded-full bg-verent-green/10 px-2 py-0.5 text-[10px] font-semibold text-verent-green">
+                            Unread
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+
+                  <div className="relative flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setMenuConversationId((current) => current === conv.id ? null : conv.id);
+                      }}
+                      className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-gray-600"
+                      aria-label="Conversation actions"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                    {menuConversationId === conv.id && (
+                      <div
+                        className="absolute right-0 top-8 z-20 w-36 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+                        onClick={(event) => event.stopPropagation()}
                       >
-                        Mark as read
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void onMarkConversationUnread(conv.id);
-                          setMenuConversationId(null);
-                        }}
-                        className="w-full px-3 py-2.5 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                      >
-                        Mark as unread
-                      </button>
+                        {unreadCount > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void onMarkConversationRead(conv.id);
+                              setMenuConversationId(null);
+                            }}
+                            className="w-full px-3 py-2.5 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                          >
+                            Mark as read
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void onMarkConversationUnread(conv.id);
+                              setMenuConversationId(null);
+                            }}
+                            className="w-full px-3 py-2.5 text-left text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                          >
+                            Mark as unread
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
+                </div>
               </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
