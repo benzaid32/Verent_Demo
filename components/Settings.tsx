@@ -57,7 +57,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
          </div>
          <button 
             onClick={handleSave}
-            className="px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors flex items-center space-x-2"
+            className="px-4 py-2 bg-verent-yellow text-verent-black text-sm font-semibold rounded-lg hover:bg-verent-yellow-dark transition-colors flex items-center space-x-2"
          >
             {isLoading ? <span>Saving...</span> : <span>Save Changes</span>}
          </button>
@@ -118,8 +118,8 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
          <SectionHeader title="Trust & Verification" description="This screen only shows live profile state currently persisted by the platform." />
          <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div className="p-3 bg-green-50 rounded-xl">
-                <ShieldCheck className="w-6 h-6 text-green-600" />
+              <div className="p-3 bg-verent-peach rounded-xl">
+                <ShieldCheck className="w-6 h-6 text-verent-yellow-dark" />
               </div>
               <div className="space-y-3">
                 <div>
@@ -137,7 +137,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
                   </div>
                   <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Status</p>
-                    <p className="mt-2 text-sm font-medium text-green-700">Active profile record</p>
+                    <p className="mt-2 text-sm font-medium text-verent-yellow-dark">Active profile record</p>
                   </div>
                 </div>
               </div>
@@ -168,7 +168,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, notifications: notificatio
                         </div>
                     </div>
                     <div className="flex items-center space-x-3">
-                        <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">Active</span>
+                        <span className="text-xs font-medium text-verent-yellow-dark bg-verent-peach px-2 py-1 rounded-full border border-verent-yellow/30">Active</span>
                     </div>
                 </div>
             </div>

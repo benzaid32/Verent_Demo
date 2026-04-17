@@ -226,7 +226,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Owner</p>
                       <h3 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">Trusted operator</h3>
                     </div>
-                    <div className="inline-flex w-fit items-center gap-2 rounded-full border border-green-100 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full border border-verent-yellow/30 bg-verent-peach px-3 py-1.5 text-xs font-semibold text-verent-yellow-dark">
                       <CheckCircle2 className="h-4 w-4" />
                       <span>Verified profile</span>
                     </div>
@@ -236,7 +236,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                     <div className="flex items-center space-x-4">
                         <div className="relative">
                             <img src={listing.ownerAvatar} alt={listing.ownerName} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" />
-                            <div className="absolute -bottom-1 -right-1 bg-green-500 text-white p-1 rounded-full border-2 border-white">
+                            <div className="absolute -bottom-1 -right-1 bg-verent-yellow-dark text-verent-black p-1 rounded-full border-2 border-white">
                                 <CheckCircle2 className="w-3 h-3" />
                             </div>
                         </div>
@@ -280,8 +280,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                                     </div>
                                     <span className="font-bold text-gray-900">Owner Controls</span>
                                 </div>
-                                <div className="flex items-center space-x-1 rounded bg-green-50 px-2 py-1 text-xs font-bold text-green-600">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                <div className="flex items-center space-x-1 rounded bg-verent-peach px-2 py-1 text-xs font-bold text-verent-yellow-dark">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-verent-yellow-dark animate-pulse"></span>
                                     <span>{availabilityLabel}</span>
                                 </div>
                             </div>
@@ -312,7 +312,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                                       <span className="text-sm font-medium text-gray-400">per day</span>
                                   </div>
                                   <div className="flex flex-col items-end">
-                                      <span className="rounded-md bg-green-50 px-2.5 py-1 text-xs font-bold uppercase text-verent-green">{availabilityLabel}</span>
+                                      <span className="rounded-md bg-verent-peach px-2.5 py-1 text-xs font-bold uppercase text-verent-yellow-dark">{availabilityLabel}</span>
                                       <span className="mt-3 text-xs text-gray-400">Wallet balance: ${wallet.usdcBalance.toFixed(2)}</span>
                                   </div>
                                 </div>
@@ -375,7 +375,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, profile, walle
                             ) : canAfford ? (
                                 <button 
                                     onClick={() => setShowBookingModal(true)}
-                                    className="flex w-full items-center justify-center space-x-2 rounded-xl bg-black py-4 font-bold text-white shadow-lg shadow-gray-300 transition-all hover:-translate-y-0.5 hover:bg-gray-800 hover:shadow-gray-400"
+                                    className="flex w-full items-center justify-center space-x-2 rounded-xl bg-verent-yellow py-4 font-bold text-verent-black shadow-lg shadow-verent-yellow/25 transition-all hover:-translate-y-0.5 hover:bg-verent-yellow-dark hover:shadow-verent-yellow/40"
                                 >
                                     <span>Request to Book</span>
                                     <ArrowRight className="w-4 h-4" />

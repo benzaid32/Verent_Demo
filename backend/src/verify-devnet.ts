@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Connection } from '@solana/web3.js';
 import { env, getEnvIssues } from './env.js';
 import { deriveAssociatedTokenAddress, deriveConfigPda, deriveRewardVaultPda, deriveStakeVaultPda, deriveStakingConfigPda, getProtocolProgramId } from '../../shared/protocol.js';

@@ -1,0 +1,23 @@
+name = "verent-backend"
+main = "src/worker.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Non-secret vars only. This file is committed to git.
+# Anything with a key/token/credential MUST go through `npx wrangler secret put <NAME>`.
+# Secrets set via wrangler: BACKEND_JWT_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+# PRIVY_APP_ID, PRIVY_VERIFICATION_KEY, TREASURY_SECRET_KEY, TREASURY_PUBLIC_KEY,
+# SOLANA_RPC_URL (contains provider API key).
+[vars]
+NODE_ENV = "production"
+DATA_PROVIDER = "supabase"
+DEMO_MODE = "false"
+SOLANA_CLUSTER = "devnet"
+APP_ORIGIN = "https://app.verent.xyz,https://verent-demo.vercel.app,http://localhost:3000,http://localhost:5173"
+VERENT_RENTALS_PROGRAM_ID = "KYXbFTyxAJuXAz2MeVC49wAj2MadW61TH86oVhaVrUk"
+
+# Observability
+[observability]
+enabled = true
+head_sampling_rate = 1

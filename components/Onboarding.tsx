@@ -5,7 +5,7 @@ import { useCreateWallet, useWallets } from '@privy-io/react-auth/solana';
 import { ArrowRight, Server, Search, Mail, CheckCircle2, Loader2, ChevronLeft, ShieldCheck } from 'lucide-react';
 import { UserRole } from '../types';
 
-const logo = new URL('../assets/favicon-32x32.png', import.meta.url).href;
+const logo = new URL('../assets/Verent_icon.png', import.meta.url).href;
 
 interface OnboardingProps {
   onComplete: (email: string, role: UserRole, privyToken: string, walletAddress?: string) => Promise<void>;
@@ -182,8 +182,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
                 {/* Nodes */}
                 {nodes.map((node) => (
                     <g key={node.id} className="animate-pulse" style={{ animationDuration: `${node.duration}s` }}>
-                        <circle cx={node.x} cy={node.y} r="0.8" fill="#2ecc71" className="drop-shadow-[0_0_8px_rgba(46,204,113,0.8)]" />
-                        <circle cx={node.x} cy={node.y} r="4" fill="transparent" stroke="#2ecc71" strokeWidth="0.1" className="opacity-30 animate-ping" style={{ animationDuration: `${node.duration + 2}s` }} />
+                        <circle cx={node.x} cy={node.y} r="0.8" fill="#F5B800" className="drop-shadow-[0_0_8px_rgba(245,184,0,0.8)]" />
+                        <circle cx={node.x} cy={node.y} r="4" fill="transparent" stroke="#F5B800" strokeWidth="0.1" className="opacity-30 animate-ping" style={{ animationDuration: `${node.duration + 2}s` }} />
                     </g>
                 ))}
             </svg>
@@ -192,7 +192,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
         {/* Text Overlay */}
         <div className="absolute bottom-12 left-12 max-w-md">
             <div className="flex items-center space-x-3 mb-4">
-                 <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-[0_0_20px_rgba(46,204,113,0.4)] overflow-hidden">
+                 <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-[0_0_20px_rgba(245,184,0,0.4)] overflow-hidden">
                     <img
                       src={logo}
                       alt="Verent logo"
@@ -303,7 +303,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
                             <button 
                                 type="submit" 
                                 disabled={isLoading || !email || !ready}
-                                className="w-full bg-[#111] text-white font-bold py-4 rounded-xl hover:bg-black transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-xl shadow-gray-200 hover:shadow-gray-300 hover:-translate-y-0.5"
+                                className="w-full bg-verent-yellow text-verent-black font-bold py-4 rounded-xl hover:bg-verent-yellow-dark transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-xl shadow-verent-yellow/25 hover:shadow-verent-yellow/40 hover:-translate-y-0.5"
                             >
                                 {isLoading ? (
                                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -353,7 +353,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, error }) => {
                             <button 
                                 type="submit" 
                                 disabled={isLoading || !ready}
-                                className="w-full bg-verent-green text-white font-bold py-4 rounded-xl hover:bg-emerald-600 transition-all disabled:opacity-70 flex items-center justify-center space-x-2 shadow-xl shadow-verent-green/20 hover:shadow-verent-green/30 hover:-translate-y-0.5"
+                                className="w-full bg-verent-yellow text-verent-black font-bold py-4 rounded-xl hover:bg-verent-yellow-dark transition-all disabled:opacity-70 flex items-center justify-center space-x-2 shadow-xl shadow-verent-yellow/25 hover:shadow-verent-yellow/40 hover:-translate-y-0.5"
                             >
                                 {isLoading ? (
                                     <Loader2 className="w-5 h-5 animate-spin" />

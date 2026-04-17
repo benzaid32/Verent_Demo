@@ -25,7 +25,6 @@ backend/.env.*
 backend/.dev.vars
 backend/.dev.vars.*
 .wrangler/
-backend/.wrangler/
 backend/data/demo-db.json
 anchor/target
 anchor/.anchor

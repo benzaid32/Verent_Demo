@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { z } from 'zod';
 
 const boolFromEnv = z.preprocess((value) => {
@@ -44,40 +43,86 @@ const envSchema = z.object({
   VERENT_STAKING_INITIAL_REWARD_VRNT: z.coerce.number().optional()
 });
 
-export const env = envSchema.parse(process.env);
+export type BackendEnv = z.infer<typeof envSchema>;
+
+type MutableEnv = BackendEnv & { [key: string]: unknown };
+
+let runtimeSource: Record<string, unknown> | null = null;
+
+export function setEnvSource(source: Record<string, unknown> | null | undefined) {
+  runtimeSource = source ?? null;
+}
+
+function parseEnv(): BackendEnv {
+  // Priority: explicit runtime source (Workers c.env) → process.env (Node.js).
+  const source = runtimeSource ?? (typeof process !== 'undefined' ? process.env : {}) ?? {};
+  return envSchema.parse(source);
+}
+
+// No caching: Workers populate env at request time, not at module import.
+// Zod parsing is microseconds and keeps env in sync with runtime bindings.
+function ensureEnv(): BackendEnv {
+  return parseEnv();
+}
+
+// Workers populate process.env at request-handling time, not at module import.
+// We proxy so every property read lazily parses from the current process.env snapshot.
+export const env = new Proxy({} as MutableEnv, {
+  get(_target, prop: string) {
+    return ensureEnv()[prop as keyof BackendEnv];
+  },
+  has(_target, prop: string) {
+    return prop in ensureEnv();
+  },
+  ownKeys() {
+    return Reflect.ownKeys(ensureEnv() as object);
+  },
+  getOwnPropertyDescriptor(_target, prop: string) {
+    const value = ensureEnv()[prop as keyof BackendEnv];
+    if (value === undefined) {
+      return undefined;
+    }
+    return { configurable: true, enumerable: true, value };
+  }
+}) as BackendEnv;
 
 function hasValue(value?: string) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-export function getEnvIssues() {
-  const issues: string[] = [];
-  const productionLike = env.NODE_ENV === 'production';
+export function refreshEnv() {
+  return parseEnv();
+}
 
-  if (!hasValue(env.APP_ORIGIN)) {
+export function getEnvIssues() {
+  const current = ensureEnv();
+  const issues: string[] = [];
+  const productionLike = current.NODE_ENV === 'production';
+
+  if (!hasValue(current.APP_ORIGIN)) {
     issues.push('APP_ORIGIN is required.');
   }
 
-  if (!hasValue(env.BACKEND_JWT_SECRET)) {
+  if (!hasValue(current.BACKEND_JWT_SECRET)) {
     issues.push('BACKEND_JWT_SECRET is required.');
-  } else if (env.BACKEND_JWT_SECRET === 'development-only-secret-change-me') {
+  } else if (current.BACKEND_JWT_SECRET === 'development-only-secret-change-me') {
     issues.push('BACKEND_JWT_SECRET must not use the development placeholder.');
   }
 
-  if (env.DATA_PROVIDER === 'supabase') {
-    if (!hasValue(env.SUPABASE_URL)) {
+  if (current.DATA_PROVIDER === 'supabase') {
+    if (!hasValue(current.SUPABASE_URL)) {
       issues.push('SUPABASE_URL is required when DATA_PROVIDER=supabase.');
     }
-    if (!hasValue(env.SUPABASE_SERVICE_ROLE_KEY)) {
+    if (!hasValue(current.SUPABASE_SERVICE_ROLE_KEY)) {
       issues.push('SUPABASE_SERVICE_ROLE_KEY is required when DATA_PROVIDER=supabase.');
     }
   }
 
-  if (!env.DEMO_MODE && !hasValue(env.PRIVY_VERIFICATION_KEY)) {
+  if (!current.DEMO_MODE && !hasValue(current.PRIVY_VERIFICATION_KEY)) {
     issues.push('PRIVY_VERIFICATION_KEY is required when DEMO_MODE=false.');
   }
 
-  if (productionLike && !hasValue(env.PRIVY_APP_ID)) {
+  if (productionLike && !hasValue(current.PRIVY_APP_ID)) {
     issues.push('PRIVY_APP_ID should be configured in production.');
   }
 

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, sendAndConfirmTransaction } from '@solana/web3.js';
 import { env } from './env.js';
 import { assertAccountExists, getTreasuryKeypair } from './solana.js';

@@ -85,10 +85,10 @@ const OnChainProofCard: React.FC<OnChainProofCardProps> = ({
   };
 
   return (
-    <section className={`rounded-2xl border border-emerald-100 bg-white shadow-sm ${compact ? 'p-4' : 'p-6'}`}>
+    <section className={`rounded-2xl border border-verent-yellow/30 bg-white shadow-sm ${compact ? 'p-4' : 'p-6'}`}>
       <div className={`flex flex-wrap items-center justify-between gap-3 ${compact ? 'mb-4' : 'mb-5'}`}>
         <div>
-          <div className={`inline-flex items-center gap-2 rounded-full bg-emerald-50 font-semibold text-emerald-700 ${compact ? 'mb-1.5 px-2.5 py-1 text-[11px]' : 'mb-2 px-3 py-1 text-xs'}`}>
+          <div className={`inline-flex items-center gap-2 rounded-full bg-verent-peach font-semibold text-verent-yellow-dark ${compact ? 'mb-1.5 px-2.5 py-1 text-[11px]' : 'mb-2 px-3 py-1 text-xs'}`}>
             <CheckCircle2 className="h-4 w-4" />
             <span>Confirmed On Solana</span>
           </div>

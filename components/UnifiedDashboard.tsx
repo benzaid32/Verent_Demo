@@ -116,8 +116,8 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
             label: 'Active Rentals',
             value: rentingRentals.filter((item) => item.status === 'active').length,
             hint: 'Assets currently checked out.',
-            icon: <ShieldCheck className="w-5 h-5 text-green-600" />,
-            iconWrapperClassName: 'bg-green-50'
+            icon: <ShieldCheck className="w-5 h-5 text-verent-yellow-dark" />,
+            iconWrapperClassName: 'bg-verent-peach'
           }
         ]
       };
@@ -254,7 +254,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                 {activeTab === 'lending' && (
                     <button 
                         onClick={() => setIsAddModalOpen(true)}
-                        className="hidden md:flex items-center space-x-2 bg-black text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 transition-all shadow-md hover:shadow-lg shadow-gray-200"
+                        className="hidden md:flex items-center space-x-2 bg-verent-yellow text-verent-black px-4 py-2.5 rounded-lg hover:bg-verent-yellow-dark transition-all shadow-md hover:shadow-lg shadow-verent-yellow/20 font-semibold"
                     >
                         <Plus className="w-4 h-4" />
                         <span className="text-sm font-medium">Add Listing</span>
@@ -317,7 +317,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                     {activeTab === 'lending' && (
                       <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="mt-5 inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+                        className="mt-5 inline-flex items-center gap-2 rounded-lg bg-verent-yellow px-4 py-2.5 text-sm font-semibold text-verent-black transition-colors hover:bg-verent-yellow-dark"
                       >
                         <Plus className="w-4 h-4" />
                         <span>Create your first listing</span>
@@ -340,10 +340,10 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                                 </div>
                                 <div className="mt-2 flex flex-wrap items-center gap-2">
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
-                                        rental.status === 'active' ? 'bg-green-100 text-green-700' :
+                                        rental.status === 'active' ? 'bg-verent-yellow/25 text-verent-yellow-dark' :
                                         rental.status === 'pending_pickup' ? 'bg-orange-100 text-orange-700' :
                                         rental.status === 'pending_approval' ? 'bg-blue-100 text-blue-700' :
-                                        rental.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                        rental.status === 'completed' ? 'bg-verent-peach text-verent-yellow-dark' :
                                         'bg-gray-100 text-gray-600'
                                     }`}>
                                         {rental.status.replace('_', ' ')}
@@ -372,7 +372,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             {activeTab === 'renting' && rental.status === 'pending_pickup' && (
                                 <button 
                                     onClick={() => setModalState({ type: 'pickup_qr', rental })}
-                                    className="flex w-full items-center justify-center space-x-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto"
+                                    className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-yellow px-4 py-2 text-sm font-semibold text-verent-black transition-colors hover:bg-verent-yellow-dark sm:w-auto"
                                 >
                                     <QrCode className="w-4 h-4" />
                                     <span>Display Pickup QR</span>
@@ -381,7 +381,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             {activeTab === 'renting' && rental.status === 'active' && (
                                 <button 
                                     onClick={() => setModalState({ type: 'return_qr', rental })}
-                                    className="flex w-full items-center justify-center space-x-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto"
+                                    className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-yellow px-4 py-2 text-sm font-semibold text-verent-black transition-colors hover:bg-verent-yellow-dark sm:w-auto"
                                 >
                                     <QrCode className="w-4 h-4" />
                                     <span>Display Return QR</span>
@@ -398,7 +398,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                                         nextRental
                                       );
                                     }}
-                                    className="flex w-full items-center justify-center space-x-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto"
+                                    className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-yellow px-4 py-2 text-sm font-semibold text-verent-black transition-colors hover:bg-verent-yellow-dark sm:w-auto"
                                 >
                                     <CheckCircle2 className="w-4 h-4" />
                                     <span>Approve Request</span>
@@ -407,7 +407,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             {activeTab === 'lending' && rental.status === 'pending_pickup' && (
                                 <button
                                   onClick={() => setModalState({ type: 'confirm_pickup', rental })}
-                                  className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 sm:w-auto"
+                                  className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-yellow px-4 py-2 text-sm font-semibold text-verent-black transition-colors hover:bg-verent-yellow-dark sm:w-auto"
                                 >
                                     <Scan className="w-4 h-4" />
                                     <span>Confirm Pickup</span>
@@ -416,7 +416,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             {activeTab === 'lending' && rental.status === 'active' && (
                                 <button
                                   onClick={() => setModalState({ type: 'confirm_return', rental })}
-                                  className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 sm:w-auto"
+                                  className="flex w-full items-center justify-center space-x-2 rounded-lg bg-verent-yellow px-4 py-2 text-sm font-semibold text-verent-black transition-colors hover:bg-verent-yellow-dark sm:w-auto"
                                 >
                                     <Scan className="w-4 h-4" />
                                     <span>Confirm Return</span>
@@ -424,7 +424,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                             )}
                              {rental.status === 'active' && (
                                 <div className="text-sm text-gray-500 flex items-center space-x-2">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                    <div className="w-2 h-2 bg-verent-yellow-dark rounded-full animate-pulse" />
                                     <span>On-Chain Active</span>
                                 </div>
                             )}
@@ -489,7 +489,7 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
                           <button
                             onClick={() => void submitVerification()}
                             disabled={isSubmitting}
-                            className="w-full py-3 bg-black text-white font-medium rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60"
+                            className="w-full py-3 bg-verent-yellow text-verent-black font-semibold rounded-xl hover:bg-verent-yellow-dark transition-colors disabled:opacity-60"
                           >
                             {isSubmitting ? 'Submitting...' : modalState.type === 'confirm_pickup' ? 'Confirm Pickup On-Chain' : 'Settle Return On-Chain'}
                           </button>

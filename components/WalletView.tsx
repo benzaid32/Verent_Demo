@@ -352,7 +352,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                     <p className="text-xs text-gray-500 mb-1">Public Address</p>
                     <div className="flex items-start justify-between gap-3">
                         <code className="min-w-0 flex-1 break-all text-[11px] text-gray-900 font-mono sm:text-xs">{wallet.address}</code>
-                        <button onClick={handleCopy} className="flex-shrink-0 text-verent-green hover:text-green-700 transition-colors">
+                        <button onClick={handleCopy} className="flex-shrink-0 text-verent-yellow-dark hover:text-verent-black transition-colors">
                             {copied ? <CheckCircle2 className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                         </button>
                     </div>
@@ -419,7 +419,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                                 onClick={handleCopy}
                                 className="inline-flex items-center justify-center space-x-2 self-start rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 transition-colors hover:bg-gray-50 sm:self-center"
                             >
-                                {copied ? <CheckCircle2 className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                                {copied ? <CheckCircle2 className="w-3 h-3 text-verent-yellow-dark" /> : <Copy className="w-3 h-3" />}
                                 <span>Copy</span>
                             </button>
                             </div>
@@ -445,15 +445,15 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                     </div>
 
                     {withdrawStatus === 'success' ? (
-                        <div className="rounded-xl border border-green-100 bg-green-50 p-5 text-center space-y-3 sm:p-6">
-                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
+                        <div className="rounded-xl border border-verent-yellow/30 bg-verent-peach p-5 text-center space-y-3 sm:p-6">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-verent-yellow/25 text-verent-yellow-dark">
                                 <CheckCircle2 className="w-6 h-6" />
                             </div>
-                            <h3 className="text-base font-bold text-green-900 sm:text-lg">Transaction Successful</h3>
-                            <p className="text-sm leading-6 text-green-700">Your transfer was confirmed on Solana and the full proof is shown in the confirmation sheet.</p>
+                            <h3 className="text-base font-bold text-verent-black sm:text-lg">Transaction Successful</h3>
+                            <p className="text-sm leading-6 text-gray-700">Your transfer was confirmed on Solana and the full proof is shown in the confirmation sheet.</p>
                             <button 
                                 onClick={() => { setWithdrawStatus('idle'); setWithdrawAmount(''); setWithdrawAddress(''); setWithdrawProof(null); }}
-                                className="mt-2 rounded-lg border border-green-200 bg-white px-5 py-2.5 text-sm font-medium text-green-700 hover:bg-green-50"
+                                className="mt-2 rounded-lg border border-verent-yellow/40 bg-white px-5 py-2.5 text-sm font-semibold text-verent-yellow-dark hover:bg-verent-peach"
                             >
                                 Make Another Transfer
                             </button>
@@ -470,21 +470,21 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
                                     <button 
                                         onClick={() => setWithdrawCurrency('SOL')}
-                                        className={`flex min-h-[52px] items-center justify-center space-x-2 rounded-xl border px-3 py-3 text-sm font-medium transition-all ${withdrawCurrency === 'SOL' ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                                        className={`flex min-h-[52px] items-center justify-center space-x-2 rounded-xl border px-3 py-3 text-sm font-semibold transition-all ${withdrawCurrency === 'SOL' ? 'border-verent-yellow-dark bg-verent-yellow text-verent-black shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
                                     >
                                         <span className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500"></span>
                                         <span>SOL</span>
                                     </button>
                                     <button 
                                         onClick={() => setWithdrawCurrency('USDC')}
-                                        className={`flex min-h-[52px] items-center justify-center space-x-2 rounded-xl border px-3 py-3 text-sm font-medium transition-all ${withdrawCurrency === 'USDC' ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                                        className={`flex min-h-[52px] items-center justify-center space-x-2 rounded-xl border px-3 py-3 text-sm font-semibold transition-all ${withdrawCurrency === 'USDC' ? 'border-verent-yellow-dark bg-verent-yellow text-verent-black shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
                                     >
                                         <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                                         <span>USDC</span>
                                     </button>
                                     <button 
                                         onClick={() => setWithdrawCurrency('VRNT')}
-                                        className={`flex min-h-[52px] items-center justify-center space-x-2 rounded-xl border px-3 py-3 text-sm font-medium transition-all ${withdrawCurrency === 'VRNT' ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                                        className={`flex min-h-[52px] items-center justify-center space-x-2 rounded-xl border px-3 py-3 text-sm font-semibold transition-all ${withdrawCurrency === 'VRNT' ? 'border-verent-yellow-dark bg-verent-yellow text-verent-black shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
                                     >
                                         <span className="w-2 h-2 rounded-full bg-verent-green"></span>
                                         <span>VRNT</span>
@@ -579,7 +579,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                             <button 
                                 onClick={handleWithdraw}
                                 disabled={withdrawStatus !== 'idle'}
-                                className="flex min-h-[56px] w-full items-center justify-center space-x-2 rounded-xl bg-black py-4 font-bold text-white shadow-lg shadow-gray-200 transition-all hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70"
+                                className="flex min-h-[56px] w-full items-center justify-center space-x-2 rounded-xl bg-verent-yellow py-4 font-bold text-verent-black shadow-lg shadow-verent-yellow/20 transition-all hover:bg-verent-yellow-dark disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {withdrawStatus === 'idle' && (
                                     <>
@@ -629,7 +629,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                             <div key={tx.id} className="group rounded-2xl border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50 sm:p-5">
                                 <div className="flex items-start gap-3 sm:gap-4">
                                     <div className={`rounded-2xl p-3 ${
-                                        tx.type === 'deposit' ? 'bg-green-100 text-green-600' :
+                                        tx.type === 'deposit' ? 'bg-verent-yellow/25 text-verent-yellow-dark' :
                                         tx.type === 'withdraw' ? 'bg-gray-100 text-gray-600' :
                                         tx.type === 'stake' ? 'bg-purple-100 text-purple-600' :
                                         tx.type === 'claim_rewards' || tx.type === 'claim_yield' ? 'bg-yellow-100 text-yellow-600' :
@@ -654,7 +654,7 @@ const WalletView: React.FC<WalletViewProps> = ({ wallet, transactions, onWithdra
                                                     {isPositiveTransaction(tx.type) ? '+' : '-'}{tx.amount} {tx.currency}
                                                 </span>
                                                 <span className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase ${
-                                                    tx.status === 'confirmed' || tx.status === 'completed' ? 'border-green-100 bg-green-50 text-green-700' :
+                                                    tx.status === 'confirmed' || tx.status === 'completed' ? 'border-verent-yellow/30 bg-verent-peach text-verent-yellow-dark' :
                                                     tx.status === 'pending' ? 'border-yellow-100 bg-yellow-50 text-yellow-700' :
                                                     'border-red-100 bg-red-50 text-red-700'
                                                 }`}>

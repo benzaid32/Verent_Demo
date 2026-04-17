@@ -5,8 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:worker": "wrangler dev",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/backend/src/server.js",
+    "deploy": "wrangler deploy",
+    "cf:login": "wrangler login",
+    "cf:secret": "wrangler secret put",
     "test": "vitest run",
     "protocol:init": "tsx src/init-protocol.ts",
     "staking:init": "tsx src/init-staking.ts",
@@ -21,13 +25,16 @@
     "bs58": "^6.0.0",
     "dotenv": "^17.3.1",
     "fastify": "^5.8.2",
+    "hono": "^4.9.0",
     "jose": "^6.2.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250315.0",
     "@types/node": "^25.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "wrangler": "^4.0.0"
   }
 }

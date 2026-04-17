@@ -111,8 +111,8 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
             {/* SUCCESS STATE */}
             {step === 'success' && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-in zoom-in duration-300">
-                        <CheckCircle2 className="w-8 h-8 text-green-600" />
+                    <div className="w-16 h-16 bg-verent-yellow/25 rounded-full flex items-center justify-center mb-4 animate-in zoom-in duration-300">
+                        <CheckCircle2 className="w-8 h-8 text-verent-yellow-dark" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">Listing Live!</h3>
                     <p className="text-gray-500 max-w-xs mx-auto mb-8">
@@ -133,7 +133,7 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                     )}
                     <button 
                         onClick={onClose}
-                        className="bg-black text-white px-8 py-3 rounded-xl font-medium hover:bg-gray-800 transition-all"
+                        className="bg-verent-yellow text-verent-black px-8 py-3 rounded-xl font-semibold hover:bg-verent-yellow-dark transition-all"
                     >
                         Return to Dashboard
                     </button>
@@ -361,7 +361,7 @@ const AddListingModal: React.FC<AddListingModalProps> = ({ onClose, onAdd }) => 
                         if (step === 'pricing') handleSubmit();
                     }}
                     disabled={step === 'details' && !formData.title}
-                    className="flex w-full items-center justify-center space-x-2 rounded-xl bg-black px-8 py-3 text-sm font-bold text-white shadow-lg shadow-gray-200 transition-all hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-2.5"
+                    className="flex w-full items-center justify-center space-x-2 rounded-xl bg-verent-yellow px-8 py-3 text-sm font-bold text-verent-black shadow-lg shadow-verent-yellow/20 transition-all hover:bg-verent-yellow-dark disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-2.5"
                 >
                     <span>{step === 'pricing' ? 'Publish Listing' : 'Continue'}</span>
                     <Plus className="w-4 h-4" />

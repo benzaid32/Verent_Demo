@@ -27,7 +27,7 @@ const NotificationsPopover: React.FC<NotificationsPopoverProps> = ({ notificatio
                 <h3 className="font-bold text-gray-900 text-sm">Notifications</h3>
                 <p className="mt-1 text-[11px] text-gray-500">{unreadCount > 0 ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}` : 'All caught up'}</p>
             </div>
-            <button onClick={() => void handleMarkAllRead()} disabled={!unreadCount} className="text-xs text-verent-green hover:text-emerald-700 font-medium disabled:text-gray-300 disabled:hover:text-gray-300">Mark all read</button>
+            <button onClick={() => void handleMarkAllRead()} disabled={!unreadCount} className="text-xs text-verent-yellow-dark hover:text-verent-black font-medium disabled:text-gray-300 disabled:hover:text-gray-300">Mark all read</button>
         </div>
         <div className="max-h-[360px] overflow-y-auto">
             {notifications.length > 0 ? (
@@ -42,7 +42,7 @@ const NotificationsPopover: React.FC<NotificationsPopoverProps> = ({ notificatio
                             <div className="flex items-start space-x-3">
                                 <div className={`p-2 rounded-full flex-shrink-0 ${
                                     notif.type === 'security' ? 'bg-red-100 text-red-600' :
-                                    notif.type === 'wallet' ? 'bg-green-100 text-green-600' :
+                                    notif.type === 'wallet' ? 'bg-verent-yellow/25 text-verent-yellow-dark' :
                                     'bg-blue-100 text-blue-600'
                                 }`}>
                                     {notif.type === 'security' ? <ShieldAlert className="w-4 h-4" /> :

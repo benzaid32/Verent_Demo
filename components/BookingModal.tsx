@@ -80,7 +80,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
                         <div>
                             <h3 className="font-bold text-gray-900 line-clamp-1">{listing.title}</h3>
                             <p className="text-sm text-gray-500 mt-1">{listing.location}</p>
-                            <div className="flex items-center space-x-1 text-xs text-green-600 mt-2 bg-green-50 px-2 py-0.5 rounded w-fit">
+                            <div className="flex items-center space-x-1 text-xs text-verent-yellow-dark mt-2 bg-verent-peach px-2 py-0.5 rounded w-fit">
                                 <ShieldCheck className="w-3 h-3" />
                                 <span>Verified Asset</span>
                             </div>
@@ -112,7 +112,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
 
                     <button 
                         onClick={() => setStep('contract_check')}
-                        className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 flex items-center justify-center space-x-2 group"
+                        className="w-full bg-verent-yellow text-verent-black py-4 rounded-xl font-bold hover:bg-verent-yellow-dark transition-all shadow-lg shadow-verent-yellow/20 flex items-center justify-center space-x-2 group"
                     >
                         <span>Initiate Contract</span>
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -172,7 +172,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
 
                      <button 
                         onClick={() => void handleSign()}
-                        className="w-full bg-verent-green text-white py-4 rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-verent-green/20 flex items-center justify-center space-x-3"
+                        className="w-full bg-verent-yellow text-verent-black py-4 rounded-xl font-bold hover:bg-verent-yellow-dark transition-all shadow-lg shadow-verent-yellow/20 flex items-center justify-center space-x-3"
                     >
                         <Fingerprint className="w-5 h-5" />
                         <span>Sign & Approve Transaction</span>
@@ -205,8 +205,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
             {/* STEP 5: CONFIRMED */}
             {step === 'confirmed' && (
                 <div className="text-center space-y-6 py-4">
-                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <CheckCircle2 className="w-10 h-10 text-green-600" />
+                     <div className="w-20 h-20 bg-verent-yellow/25 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <CheckCircle2 className="w-10 h-10 text-verent-yellow-dark" />
                     </div>
                     
                     <div>
@@ -248,7 +248,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ listing, days, rentalTotal,
 
                     <button 
                         onClick={onDone}
-                        className="w-full bg-black text-white py-3.5 rounded-xl font-bold hover:bg-gray-800 transition-colors"
+                        className="w-full bg-verent-yellow text-verent-black py-3.5 rounded-xl font-bold hover:bg-verent-yellow-dark transition-colors"
                     >
                         Go to Dashboard
                     </button>

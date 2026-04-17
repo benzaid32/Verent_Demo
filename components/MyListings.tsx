@@ -65,7 +65,7 @@ const MyListings: React.FC<MyListingsProps> = ({ listings, rentals, onCreateList
         </div>
         <button 
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center space-x-2 bg-black text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 hover:shadow-gray-300 hover:-translate-y-0.5"
+          className="flex items-center space-x-2 bg-verent-yellow text-verent-black px-4 py-2.5 rounded-lg hover:bg-verent-yellow-dark transition-all shadow-lg shadow-verent-yellow/20 hover:shadow-verent-yellow/30 hover:-translate-y-0.5 font-semibold"
         >
           <Plus className="w-4 h-4" />
           <span className="text-sm font-medium">Add New Item</span>
@@ -130,7 +130,7 @@ const MyListings: React.FC<MyListingsProps> = ({ listings, rentals, onCreateList
                         {(item.confirmedSignature || item.listingPda) && (
                           <div className="mt-2 flex flex-wrap items-center gap-2">
                             {item.confirmedSignature && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-verent-peach px-2 py-0.5 text-[10px] font-semibold text-verent-yellow-dark">
                                 <CheckCircle2 className="h-3 w-3" />
                                 <span>Confirmed</span>
                               </span>
@@ -158,12 +158,12 @@ const MyListings: React.FC<MyListingsProps> = ({ listings, rentals, onCreateList
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                      item.availability === 'active' ? 'bg-green-50 text-green-700 border-green-100' : 
+                      item.availability === 'active' ? 'bg-verent-peach text-verent-yellow-dark border-verent-yellow/30' : 
                       item.availability === 'rented' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                       'bg-gray-100 text-gray-600 border-gray-200'
                     }`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${
-                         item.availability === 'active' ? 'bg-green-500' : 
+                         item.availability === 'active' ? 'bg-verent-yellow-dark' : 
                          item.availability === 'rented' ? 'bg-blue-500' :
                          'bg-gray-400'
                       }`}></span>
@@ -210,7 +210,7 @@ const MyListings: React.FC<MyListingsProps> = ({ listings, rentals, onCreateList
              <p className="text-gray-500 mt-1 max-w-sm">You haven't listed any equipment yet. Add your first item to start earning.</p>
              <button 
                onClick={() => setIsAddModalOpen(true)}
-               className="mt-6 bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+               className="mt-6 bg-verent-yellow text-verent-black px-6 py-2.5 rounded-lg hover:bg-verent-yellow-dark transition-colors text-sm font-semibold"
              >
                 Create First Listing
              </button>

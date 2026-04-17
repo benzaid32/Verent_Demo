@@ -285,7 +285,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUserId, conversations, activ
                <button 
                   type="submit" 
                   disabled={!inputText.trim()}
-                  className="p-2 bg-verent-green text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  className="p-2 bg-verent-yellow text-verent-black rounded-lg hover:bg-verent-yellow-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                >
                   <Send className="w-4 h-4" />
                </button>

@@ -101,8 +101,8 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ listing, onClose, o
         <div className="flex-1 space-y-5 overflow-y-auto p-6">
           {updatedListing ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-verent-yellow/25">
+                <CheckCircle2 className="h-8 w-8 text-verent-yellow-dark" />
               </div>
               <h3 className="mb-2 text-2xl font-bold text-gray-900">Listing Updated On-Chain</h3>
               <p className="mx-auto mb-8 max-w-md text-sm text-gray-500">
@@ -175,7 +175,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ listing, onClose, o
         <div className="flex justify-between border-t border-gray-100 bg-gray-50/50 px-6 py-4">
           {updatedListing ? (
             <div className="flex w-full justify-end">
-              <button onClick={onClose} className="rounded-xl bg-black px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-gray-800">
+              <button onClick={onClose} className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50">
                 Close
               </button>
             </div>
@@ -184,7 +184,7 @@ const EditListingModal: React.FC<EditListingModalProps> = ({ listing, onClose, o
               <button onClick={onClose} disabled={isSaving} className="px-5 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-50">
                 Cancel
               </button>
-              <button onClick={() => void handleSubmit()} disabled={isSaving} className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-gray-800 disabled:cursor-wait disabled:opacity-60">
+              <button onClick={() => void handleSubmit()} disabled={isSaving} className="inline-flex items-center gap-2 rounded-xl bg-verent-yellow px-5 py-2.5 text-sm font-bold text-verent-black transition-all hover:bg-verent-yellow-dark disabled:cursor-wait disabled:opacity-60">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 <span>{isSaving ? 'Updating On-Chain...' : 'Save Changes'}</span>
               </button>

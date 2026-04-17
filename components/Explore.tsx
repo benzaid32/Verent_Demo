@@ -53,7 +53,7 @@ const Explore: React.FC<ExploreProps> = ({ listings, onSelectListing }) => {
                 onClick={() => setCategory(cat)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
                     category === cat 
-                    ? 'bg-black text-white shadow-md' 
+                    ? 'bg-verent-yellow text-verent-black shadow-md' 
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
             >

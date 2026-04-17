@@ -197,7 +197,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake, onRefresh }
                <button
                  onClick={() => void handleSecondaryAction('claim_rewards')}
                  disabled={(wallet.claimableVrnt ?? 0) <= 0 || status !== 'idle'}
-                 className="mt-4 w-full bg-gray-900 text-white py-3 rounded-xl text-sm font-bold hover:bg-black transition-colors disabled:opacity-60"
+                 className="mt-4 w-full bg-verent-yellow text-verent-black py-3 rounded-xl text-sm font-bold hover:bg-verent-yellow-dark transition-colors disabled:opacity-60"
                >
                  Claim VRNT Rewards
                </button>
@@ -255,18 +255,18 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake, onRefresh }
                       </div>
 
                       {status === 'success' ? (
-                           <div className="animate-in zoom-in rounded-xl border border-green-100 bg-green-50 p-5 text-center duration-300 sm:p-6">
-                                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-green-100">
-                                    <CheckCircle2 className="w-6 h-6 text-green-600" />
+                           <div className="animate-in zoom-in rounded-xl border border-verent-yellow/30 bg-verent-peach p-5 text-center duration-300 sm:p-6">
+                                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-verent-yellow/25">
+                                    <CheckCircle2 className="w-6 h-6 text-verent-yellow-dark" />
                                 </div>
-                                <h3 className="text-base font-bold text-green-900 sm:text-lg">Transaction Successful</h3>
-                                <p className="text-sm leading-6 text-green-700">Your staking balance has been updated on-chain.</p>
+                                <h3 className="text-base font-bold text-verent-black sm:text-lg">Transaction Successful</h3>
+                                <p className="text-sm leading-6 text-gray-700">Your staking balance has been updated on-chain.</p>
                            </div>
                       ) : (
                           <button 
                             onClick={() => void handleAction(activeTab === 'stake' ? 'stake' : 'request_unstake')}
                             disabled={!amount || parseFloat(amount) <= 0 || status !== 'idle'}
-                            className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg shadow-gray-200"
+                            className="w-full bg-verent-yellow text-verent-black py-4 rounded-xl font-bold hover:bg-verent-yellow-dark transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg shadow-verent-yellow/20"
                           >
                                 {status !== 'idle' ? (
                                     <>
@@ -302,7 +302,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake, onRefresh }
                           </div>
                           <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                             <span className="text-gray-500">Time remaining</span>
-                            <span className={`font-medium ${cooldownFinished ? 'text-green-700' : 'text-orange-600'}`}>
+                            <span className={`font-medium ${cooldownFinished ? 'text-verent-yellow-dark' : 'text-orange-600'}`}>
                               {cooldownRemainingLabel}
                             </span>
                           </div>
@@ -359,7 +359,7 @@ const Staking: React.FC<StakingProps> = ({ wallet, profile, onStake, onRefresh }
                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-4">
                        <div className="flex items-center justify-between mb-2">
                            <span className="text-xs text-gray-500 font-medium">Next Level</span>
-                           <span className="text-xs font-bold text-verent-green bg-green-50 px-2 py-1 rounded">{nextTierName}</span>
+                           <span className="text-xs font-bold text-verent-yellow-dark bg-verent-peach px-2 py-1 rounded">{nextTierName}</span>
                        </div>
                        <p className="text-xs text-gray-600">
                            Unlock lower collateral requirements (down to 10%) and higher rental limits by staking more VRNT.

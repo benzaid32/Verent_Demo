@@ -146,27 +146,45 @@ Do not edit yet.
 
 
 
-### Clip 7: Lister Dashboard
+### Clip 7: My Listings
 - Record length: `8 seconds`
 - What to do:
   - Switch to lister account
-  - Open the lister dashboard
-  - Pause for 1 second
-  - Small clean scroll
+  - Open `My Listings`
+  - Show real listings with status, price, and activity
+  - Make one small clean scroll
+- Why this is worth recording:
+  - This is stronger than an empty lister dashboard
+  - It proves the supply side already has real inventory to manage
 
-### Clip 8: Command Center
+### Clip 8: Lister Activity
 - Record length: `7 seconds`
 - What to do:
-  - Open command center / listing management
-  - Scroll slightly
-  - Show the operational layout clearly
+  - Open the lister dashboard
+  - Only record it if there are real requests, counts, or active handoff items
+  - Show the top stats and one useful activity row
+- If the dashboard is empty:
+  - Do not use this clip
+  - Replace it with a second `My Listings` shot or an `Add Listing` flow
 
 ### Clip 9: Accept Request / Refresh
 - Record length: `8 seconds`
 - What to do:
-  - Open rental request
+  - Open a real rental request or pending handoff
   - Accept or confirm a step
   - Show refreshed state after action
+- Why this matters:
+  - This is one of the best lister-side proof moments in the product
+
+### Clip 9B: Add Listing Flow (Use if Clip 8 is weak)
+- Record length: `8 seconds`
+- What to do:
+  - Open `Add Listing`
+  - Show title, category, image, and price area
+  - Do not go too deep into typing
+  - Keep it clean and fast
+- Use this clip only if:
+  - your lister dashboard has no useful live activity to show
 
 ### Clip 10: Wallet Deposit
 - Record length: `8 seconds`
@@ -223,6 +241,37 @@ After recording all clips:
 6. Set fonts:
    - Headline = `Montserrat Bold`
    - Body = `Open Sans`
+
+## 5.5 What Is Actually Worth Recording
+
+Use this priority order when choosing clips.
+
+### Best things to record
+- Explore listings
+- Listing details page
+- Real booking action
+- Notifications opening the right destination
+- Messages thread
+- `My Listings` with real inventory
+- Lister request approval or handoff flow
+- Wallet deposit
+- Wallet withdraw
+- Wallet history
+- Confirmation dialog
+- On-chain proof card
+- Staking screen if it looks active and readable
+
+### Only record if they contain real activity
+- Renter dashboard
+- Lister dashboard
+- Any stats page with counts
+
+### Do not waste video time on these
+- Empty dashboards
+- Long forms with too much typing
+- Empty states unless they are very beautiful
+- Repetitive scrolling
+- Screens where nothing visibly changes
 
 ## 6. Build The Timeline Step By Step
 
@@ -295,8 +344,8 @@ Add this text:
 
 ### Use these clips
 - `4 seconds` from Clip 7
-- `3 seconds` from Clip 8
 - `3 seconds` from Clip 9
+- `3 seconds` from Clip 8 or Clip 9B
 
 ### What viewer should feel
 This is not only for renters. Listers also have a real workspace.
@@ -317,6 +366,7 @@ Add this text:
 ### Edit note
 - This scene should feel operational and serious
 - No flashy animation
+- If Clip 8 feels empty, remove it and use Clip 9B instead
 
 ## Scene 4 - Wallet
 

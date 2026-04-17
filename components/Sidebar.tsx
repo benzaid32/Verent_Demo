@@ -3,7 +3,7 @@ import React from 'react';
 import { Compass, LayoutDashboard, List, Wallet, Settings, LogOut, MessageSquare, X, Shield } from 'lucide-react';
 import { UserRole, ViewMode } from '../types';
 
-const logo = new URL('../assets/favicon-32x32.png', import.meta.url).href;
+const logo = new URL('../assets/Verent_icon.png', import.meta.url).href;
 
 interface SidebarProps {
   currentMode: ViewMode;
@@ -88,14 +88,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, onSwitchMode, onLogout, 
                   }}
                   className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
-                      ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200'
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/50'
+                      ? 'bg-white text-gray-900 shadow-sm ring-1 ring-verent-yellow/40'
+                      : 'text-gray-500 hover:text-gray-900 hover:bg-verent-peach/40'
                   }`}
               >
-                  <item.icon className={`w-4 h-4 ${isActive ? 'text-verent-green' : 'text-gray-400'}`} />
+                  <item.icon className={`w-4 h-4 ${isActive ? 'text-verent-yellow-dark' : 'text-gray-400'}`} />
                   <span>{item.label}</span>
                   {item.id === 'messages' && unreadMessagesCount > 0 && (
-                    <span className="ml-auto bg-verent-green/10 text-verent-green text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    <span className="ml-auto bg-verent-yellow/25 text-verent-yellow-dark text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                       {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
                     </span>
                   )}
