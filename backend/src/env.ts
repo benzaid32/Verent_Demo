@@ -37,7 +37,7 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().optional(),
   VERENT_RENTALS_PROGRAM_ID: z.string().optional(),
   VERENT_USDC_MINT: z.string().default('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'),
-  VERENT_VRNT_MINT: z.string().optional(),
+  VERENT_VRNT_MINT: z.string().default('7WE8MjPCaZCWAviN3DKzTTnCpqdLj92RyPX6zb8PEJVd'),
   VERENT_STAKING_COOLDOWN_SECONDS: z.coerce.number().optional(),
   VERENT_STAKING_REWARD_RATE_VRNT_PER_SECOND: z.coerce.number().optional(),
   VERENT_STAKING_INITIAL_REWARD_VRNT: z.coerce.number().optional()
